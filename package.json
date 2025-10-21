@@ -1,0 +1,42 @@
+{
+    "name": "car-detail-and-management-system",
+    "version": "1.0.0",
+    "description": "A comprehensive car management system built with MERN stack and Vite",
+    "main": "index.js",
+    "scripts": {
+        "install-all": "cd backend && npm install && cd ../frontend && npm install",
+        "dev": "concurrently \"cd backend && npm run dev\" \"cd frontend && npm run dev\"",
+        "start": "cd backend && npm start",
+        "build": "cd frontend && npm run build",
+        "backend": "cd backend && npm run dev",
+        "frontend": "cd frontend && npm run dev",
+        "seed": "cd backend && npm run seed",
+        "setup": "npm run install-all && echo 'Setup complete! Run npm run dev to start both servers.'"
+    },
+    "keywords": [
+        "car",
+        "management",
+        "mern",
+        "react",
+        "vite",
+        "nodejs",
+        "express",
+        "mongodb",
+        "tailwind",
+        "jwt",
+        "authentication"
+    ],
+    "author": "Your Name",
+    "license": "MIT",
+    "devDependencies": {
+        "concurrently": "^8.2.0"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/yourusername/car-management-system.git"
+    },
+    "bugs": {
+        "url": "https://github.com/yourusername/car-management-system/issues"
+    },
+    "homepage": "https://github.com/yourusername/car-management-system#readme"
+}
