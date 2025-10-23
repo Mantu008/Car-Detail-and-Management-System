@@ -54,7 +54,7 @@ const createService = async (req, res) => {
 // @access  Private
 const getCarServices = async (req, res) => {
   try {
-    // Check if car exists and user has access to it
+    // Check if car exists
     const car = await Car.findById(req.params.carId);
     if (!car) {
       return res.status(404).json({
@@ -63,14 +63,7 @@ const getCarServices = async (req, res) => {
       });
     }
 
-    // Check if user owns the car or is admin
-    if (car.owner.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
-      return res.status(403).json({
-        success: false,
-        message: 'Not authorized to view services for this car'
-      });
-    }
-
+    // Allow all authenticated users to view service history
     const services = await Service.find({ car: req.params.carId })
       .populate('car', 'brand model year')
       .sort({ date: -1 });

@@ -1,7 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import CarQRCode from './CarQRCode';
 
 const CarCard = ({ car }) => {
+    const [showQRCode, setShowQRCode] = useState(false);
+
     return (
         <div className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 p-6">
             {/* Car Image */}
@@ -78,7 +81,22 @@ const CarCard = ({ car }) => {
                 >
                     View Details
                 </Link>
+                <button
+                    onClick={() => setShowQRCode(true)}
+                    className="bg-purple-600 hover:bg-purple-700 text-white py-2 px-3 rounded-lg font-medium transition-colors"
+                    title="Generate QR Code"
+                >
+                    📱
+                </button>
             </div>
+
+            {/* QR Code Modal */}
+            {showQRCode && (
+                <CarQRCode
+                    car={car}
+                    onClose={() => setShowQRCode(false)}
+                />
+            )}
         </div>
     );
 };

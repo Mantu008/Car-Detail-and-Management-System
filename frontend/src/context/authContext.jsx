@@ -3,9 +3,33 @@ import axios from 'axios';
 
 const AuthContext = createContext();
 
+// Use a simpler approach - store token in sessionStorage with a consistent key
+// but add a timestamp to detect if it's from a different session
+const getStoredToken = () => {
+    const tokenData = sessionStorage.getItem('auth_token');
+    if (tokenData) {
+        try {
+            const { token, timestamp } = JSON.parse(tokenData);
+            // Check if token is less than 24 hours old
+            const now = Date.now();
+            const tokenAge = now - timestamp;
+            if (tokenAge < 24 * 60 * 60 * 1000) { // 24 hours
+                return token;
+            } else {
+                // Token is too old, remove it
+                sessionStorage.removeItem('auth_token');
+            }
+        } catch (error) {
+            // Invalid token data, remove it
+            sessionStorage.removeItem('auth_token');
+        }
+    }
+    return null;
+};
+
 const initialState = {
     user: null,
-    token: localStorage.getItem('token'),
+    token: getStoredToken(),
     loading: true,
     error: null
 };
@@ -51,6 +75,14 @@ const authReducer = (state, action) => {
                 ...state,
                 error: null
             };
+        case 'NO_TOKEN':
+            return {
+                ...state,
+                user: null,
+                token: null,
+                loading: false,
+                error: null
+            };
         default:
             return state;
     }
@@ -68,6 +100,32 @@ export const AuthProvider = ({ children }) => {
         }
     }, [state.token]);
 
+    // Cleanup on tab close
+    useEffect(() => {
+        const handleBeforeUnload = () => {
+            // Only cleanup when tab is actually closed, not on refresh
+            // Use a flag to detect if it's a refresh
+            sessionStorage.setItem('tab_closing', 'true');
+            setTimeout(() => {
+                if (sessionStorage.getItem('tab_closing') === 'true') {
+                    sessionStorage.removeItem('auth_token');
+                    sessionStorage.removeItem('tab_closing');
+                }
+            }, 100);
+        };
+
+        window.addEventListener('beforeunload', handleBeforeUnload);
+
+        return () => {
+            window.removeEventListener('beforeunload', handleBeforeUnload);
+        };
+    }, []);
+
+    // Clear the closing flag on page load (indicates it's a refresh, not a close)
+    useEffect(() => {
+        sessionStorage.removeItem('tab_closing');
+    }, []);
+
     // Load user on app start
     useEffect(() => {
         const loadUser = async () => {
@@ -82,14 +140,14 @@ export const AuthProvider = ({ children }) => {
                         }
                     });
                 } catch (error) {
-                    localStorage.removeItem('token');
+                    sessionStorage.removeItem('auth_token');
                     dispatch({
                         type: 'AUTH_ERROR',
                         payload: 'Session expired. Please login again.'
                     });
                 }
             } else {
-                dispatch({ type: 'AUTH_ERROR', payload: null });
+                dispatch({ type: 'NO_TOKEN' });
             }
         };
 
@@ -102,7 +160,10 @@ export const AuthProvider = ({ children }) => {
             const response = await axios.post('/api/users/login', { email, password });
             const { data } = response.data;
 
-            localStorage.setItem('token', data.token);
+            sessionStorage.setItem('auth_token', JSON.stringify({
+                token: data.token,
+                timestamp: Date.now()
+            }));
             dispatch({
                 type: 'LOGIN_SUCCESS',
                 payload: {
@@ -129,7 +190,10 @@ export const AuthProvider = ({ children }) => {
             const response = await axios.post('/api/users/register', { name, email, password });
             const { data } = response.data;
 
-            localStorage.setItem('token', data.token);
+            sessionStorage.setItem('auth_token', JSON.stringify({
+                token: data.token,
+                timestamp: Date.now()
+            }));
             dispatch({
                 type: 'REGISTER_SUCCESS',
                 payload: {
@@ -151,7 +215,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     const logout = () => {
-        localStorage.removeItem('token');
+        sessionStorage.removeItem('auth_token');
         dispatch({ type: 'LOGOUT' });
     };
 

@@ -1,10 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/authContext';
+import QRCodeScanner from './QRCodeScanner';
 
 const Navbar = () => {
-    const { user, logout, isAuthenticated, isAdmin } = useAuth();
+    const { user, logout, isAuthenticated, isAdmin, loading } = useAuth();
     const navigate = useNavigate();
+    const [showQRScanner, setShowQRScanner] = useState(false);
 
     const handleLogout = () => {
         logout();
@@ -39,7 +41,26 @@ const Navbar = () => {
                             Cars
                         </Link>
 
-                        {isAuthenticated ? (
+                        <Link
+                            to="/features"
+                            className="text-gray-700 hover:text-green-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                        >
+                            🚀 Features
+                        </Link>
+
+                        <button
+                            onClick={() => setShowQRScanner(true)}
+                            className="text-gray-700 hover:text-purple-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                        >
+                            📱 Scan QR
+                        </button>
+
+                        {loading ? (
+                            <div className="flex items-center space-x-2">
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                                <span className="text-gray-700 text-sm">Loading...</span>
+                            </div>
+                        ) : isAuthenticated ? (
                             <>
                                 <Link
                                     to="/my-cars"
@@ -88,6 +109,13 @@ const Navbar = () => {
                     </div>
                 </div>
             </div>
+
+            {/* QR Scanner Modal */}
+            {showQRScanner && (
+                <QRCodeScanner
+                    onClose={() => setShowQRScanner(false)}
+                />
+            )}
         </nav>
     );
 };

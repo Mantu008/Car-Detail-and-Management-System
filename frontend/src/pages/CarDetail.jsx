@@ -3,6 +3,9 @@ import { useParams, Link } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { useAuth } from '../context/authContext';
+import CarQRCode from '../components/CarQRCode';
+import FuelTracker from '../components/FuelTracker';
+import ServiceCostEstimator from '../components/ServiceCostEstimator';
 
 const CarDetail = () => {
     const [car, setCar] = useState(null);
@@ -15,15 +18,21 @@ const CarDetail = () => {
         serviceType: 'maintenance',
         serviceProvider: ''
     });
+    const [showQRCode, setShowQRCode] = useState(false);
+    const [showFuelTracker, setShowFuelTracker] = useState(false);
+    const [showCostEstimator, setShowCostEstimator] = useState(false);
     const { id } = useParams();
     const { isAuthenticated, user } = useAuth();
 
     useEffect(() => {
         fetchCarDetails();
-        if (isAuthenticated) {
+    }, [id]);
+
+    useEffect(() => {
+        if (isAuthenticated && car) {
             fetchServices();
         }
-    }, [id, isAuthenticated]);
+    }, [isAuthenticated, car]);
 
     const fetchCarDetails = async () => {
         try {
@@ -43,6 +52,7 @@ const CarDetail = () => {
             setServices(response.data.data);
         } catch (error) {
             console.error('Error fetching services:', error);
+            setServices([]);
         }
     };
 
@@ -186,6 +196,30 @@ const CarDetail = () => {
                                     </div>
                                 </div>
                             )}
+
+                            {/* Advanced Features - Available for all users */}
+                            <div className="mt-6 space-y-4">
+                                <button
+                                    onClick={() => setShowQRCode(true)}
+                                    className="block w-full bg-purple-600 hover:bg-purple-700 text-white py-3 px-4 rounded-lg font-medium transition-colors"
+                                >
+                                    📱 Generate QR Code
+                                </button>
+
+                                <button
+                                    onClick={() => setShowFuelTracker(true)}
+                                    className="block w-full bg-yellow-600 hover:bg-yellow-700 text-white py-3 px-4 rounded-lg font-medium transition-colors"
+                                >
+                                    ⛽ Fuel Efficiency Tracker
+                                </button>
+
+                                <button
+                                    onClick={() => setShowCostEstimator(true)}
+                                    className="block w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 px-4 rounded-lg font-medium transition-colors"
+                                >
+                                    💰 Service Cost Estimator
+                                </button>
+                            </div>
 
                             {canManageCar && (
                                 <div className="mt-6 space-y-4">
@@ -352,6 +386,30 @@ const CarDetail = () => {
                             </div>
                         )}
                     </div>
+                )}
+
+                {/* QR Code Modal */}
+                {showQRCode && car && (
+                    <CarQRCode
+                        car={car}
+                        onClose={() => setShowQRCode(false)}
+                    />
+                )}
+
+                {/* Fuel Tracker Modal */}
+                {showFuelTracker && car && (
+                    <FuelTracker
+                        car={car}
+                        onClose={() => setShowFuelTracker(false)}
+                    />
+                )}
+
+                {/* Service Cost Estimator Modal */}
+                {showCostEstimator && car && (
+                    <ServiceCostEstimator
+                        car={car}
+                        onClose={() => setShowCostEstimator(false)}
+                    />
                 )}
             </div>
         </div>

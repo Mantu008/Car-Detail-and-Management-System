@@ -6,6 +6,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import { AuthProvider } from './context/authContext';
 import Navbar from './components/Navbar';
 import ProtectedRoute from './components/ProtectedRoute';
+import LoadingOverlay from './components/LoadingOverlay';
 
 // Pages
 import Home from './pages/Home';
@@ -16,6 +17,7 @@ import MyCars from './pages/MyCars';
 import AddCar from './pages/AddCar';
 import EditCar from './pages/EditCar';
 import CarDetail from './pages/CarDetail';
+import FeaturesDashboard from './pages/FeaturesDashboard';
 
 function App() {
     return (
@@ -23,6 +25,7 @@ function App() {
             <Router>
                 <div className="App">
                     <Navbar />
+                    <LoadingOverlay />
                     <main>
                         <Routes>
                             <Route path="/" element={<Home />} />
@@ -54,6 +57,14 @@ function App() {
                                 }
                             />
                             <Route path="/cars/:id" element={<CarDetail />} />
+                            <Route
+                                path="/features"
+                                element={
+                                    <ProtectedRoute>
+                                        <FeaturesDashboard />
+                                    </ProtectedRoute>
+                                }
+                            />
                         </Routes>
                     </main>
 

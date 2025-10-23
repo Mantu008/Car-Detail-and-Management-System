@@ -55,6 +55,8 @@ The system can be extended in the future to include features such as service rem
   * Add and update personal car information.
   * View car details and service records.
   * Receive feedback messages via **Toast notifications**.
+  * **Generate QR codes** for each car containing details and service history links.
+  * **Scan QR codes** to quickly access car information and service records.
 
 -----
 
@@ -81,7 +83,7 @@ npm install -D tailwindcss postcss autoprefixer
 npx tailwindcss init -p
 ```
 
-### 🧩 Components
+### 🧩 Components 
 
 | Component | Description |
 | :--- | :--- |
@@ -110,6 +112,32 @@ Implemented using **React Toastify**:
 import { toast } from "react-toastify";
 toast.success("Car added successfully!");
 toast.error("Login failed!");
+```
+
+### 📱 QR Code Features
+
+**QR Code Generation:**
+- Each car can generate a unique QR code containing car details
+- QR codes include car information, owner details, and service history links
+- Downloadable QR codes as PNG images
+- Copy car data to clipboard functionality
+
+**QR Code Scanning:**
+- Scan QR codes to quickly access car information
+- Manual QR data input option
+- File upload for QR data processing
+- Direct navigation to car details and service history
+
+```javascript
+// QR Code contains structured data:
+{
+  "carId": "car_id",
+  "brand": "Toyota",
+  "model": "Camry",
+  "year": 2020,
+  "carUrl": "https://app.com/cars/car_id",
+  "serviceHistoryUrl": "https://app.com/cars/car_id#services"
+}
 ```
 
 -----
