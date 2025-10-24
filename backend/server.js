@@ -16,8 +16,6 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-console.log(process.env.CLIENT_URL);
-
 // Enable CORS
 app.use(cors({
   origin: '*', // Not recommended with credentials
@@ -32,6 +30,15 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/api/users', require('./routes/userRoutes'));
 app.use('/api/cars', require('./routes/carRoutes'));
 app.use('/api/services', require('./routes/serviceRoutes'));
+
+
+app.get('/', (req, res) => {
+  res.json({
+    success: true,
+    message: 'Car Management System API is running',
+    timestamp: new Date().toISOString()
+  });
+});
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
