@@ -18,9 +18,10 @@ app.use(express.urlencoded({ extended: true }));
 
 // Enable CORS
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:3000',
+  origin: true,
   credentials: true
 }));
+
 
 // Serve static files from uploads directory
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
@@ -31,7 +32,7 @@ app.use('/api/cars', require('./routes/carRoutes'));
 app.use('/api/services', require('./routes/serviceRoutes'));
 
 // Health check endpoint
-app.get('/api/health', (req, res) => {
+app.get('/', (req, res) => {
   res.json({
     success: true,
     message: 'Car Management System API is running',
