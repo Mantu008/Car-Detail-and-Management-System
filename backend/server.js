@@ -20,9 +20,10 @@ console.log(process.env.CLIENT_URL);
 
 // Enable CORS
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:3000',
-  credentials: true
+  origin: '*', // Not recommended with credentials
+  credentials: false // Must be false if origin is '*'
 }));
+
 
 // Serve static files from uploads directory
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
