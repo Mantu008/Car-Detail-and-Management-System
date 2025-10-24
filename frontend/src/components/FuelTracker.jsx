@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
-import axios from 'axios';
+import api from '../config/api';
 
 const FuelTracker = ({ car, onClose }) => {
     const [fuelEntries, setFuelEntries] = useState([]);
@@ -23,7 +23,7 @@ const FuelTracker = ({ car, onClose }) => {
 
     const fetchFuelEntries = async () => {
         try {
-            const response = await axios.get(`/api/cars/${car._id}/fuel-entries`);
+            const response = await api.get(`/api/cars/${car._id}/fuel-entries`);
             setFuelEntries(response.data.data);
         } catch (error) {
             console.error('Error fetching fuel entries:', error);
@@ -36,7 +36,7 @@ const FuelTracker = ({ car, onClose }) => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            await axios.post(`/api/cars/${car._id}/fuel-entries`, {
+            await api.post(`/api/cars/${car._id}/fuel-entries`, {
                 ...formData,
                 fuelAmount: parseFloat(formData.fuelAmount),
                 cost: parseFloat(formData.cost),

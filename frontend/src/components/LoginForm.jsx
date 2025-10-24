@@ -18,7 +18,7 @@ const LoginForm = () => {
 
     useEffect(() => {
         clearError();
-    }, [clearError]);
+    }, [clearError]); // Now clearError is stable with useCallback
 
     const handleChange = (e) => {
         setFormData({

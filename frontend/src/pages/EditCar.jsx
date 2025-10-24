@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import axios from 'axios';
+import api from '../config/api';
 import CarForm from '../components/CarForm';
 
 const EditCar = () => {
@@ -15,7 +15,7 @@ const EditCar = () => {
 
     const fetchCar = async () => {
         try {
-            const response = await axios.get(`/api/cars/${id}`);
+            const response = await api.get(`/api/cars/${id}`);
             setCar(response.data.data);
         } catch (error) {
             console.error('Error fetching car:', error);
@@ -38,7 +38,7 @@ const EditCar = () => {
             formData.append('image', image);
         }
 
-        await axios.put(`/api/cars/${id}`, formData, {
+        await api.put(`/api/cars/${id}`, formData, {
             headers: {
                 'Content-Type': 'multipart/form-data',
             },

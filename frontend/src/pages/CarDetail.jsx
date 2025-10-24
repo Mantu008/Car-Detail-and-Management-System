@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import axios from 'axios';
+import api from '../config/api';
 import { toast } from 'react-toastify';
 import { useAuth } from '../context/authContext';
 import CarQRCode from '../components/CarQRCode';
@@ -36,7 +36,7 @@ const CarDetail = () => {
 
     const fetchCarDetails = async () => {
         try {
-            const response = await axios.get(`/api/cars/${id}`);
+            const response = await api.get(`/api/cars/${id}`);
             setCar(response.data.data);
         } catch (error) {
             toast.error('Failed to fetch car details');
@@ -48,7 +48,7 @@ const CarDetail = () => {
 
     const fetchServices = async () => {
         try {
-            const response = await axios.get(`/api/services/${id}`);
+            const response = await api.get(`/api/services/${id}`);
             setServices(response.data.data);
         } catch (error) {
             console.error('Error fetching services:', error);
@@ -59,7 +59,7 @@ const CarDetail = () => {
     const handleServiceSubmit = async (e) => {
         e.preventDefault();
         try {
-            await axios.post('/api/services', {
+            await api.post('/api/services', {
                 ...serviceForm,
                 car: id,
                 cost: parseFloat(serviceForm.cost),
@@ -83,7 +83,7 @@ const CarDetail = () => {
     const handleDeleteService = async (serviceId) => {
         if (window.confirm('Are you sure you want to delete this service record?')) {
             try {
-                await axios.delete(`/api/services/${serviceId}`);
+                await api.delete(`/api/services/${serviceId}`);
                 toast.success('Service deleted successfully!');
                 fetchServices();
             } catch (error) {

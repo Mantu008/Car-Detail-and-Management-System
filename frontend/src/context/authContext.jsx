@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useReducer, useEffect } from 'react';
-import axios from 'axios';
+import React, { createContext, useContext, useReducer, useEffect, useCallback } from 'react';
+import api from '../config/api';
 
 const AuthContext = createContext();
 
@@ -91,14 +91,7 @@ const authReducer = (state, action) => {
 export const AuthProvider = ({ children }) => {
     const [state, dispatch] = useReducer(authReducer, initialState);
 
-    // Set up axios defaults
-    useEffect(() => {
-        if (state.token) {
-            axios.defaults.headers.common['Authorization'] = `Bearer ${state.token}`;
-        } else {
-            delete axios.defaults.headers.common['Authorization'];
-        }
-    }, [state.token]);
+    // Note: API configuration is now handled in the api.js config file
 
     // Cleanup on tab close
     useEffect(() => {
@@ -131,7 +124,7 @@ export const AuthProvider = ({ children }) => {
         const loadUser = async () => {
             if (state.token) {
                 try {
-                    const response = await axios.get('/api/users/profile');
+                    const response = await api.get('/api/users/profile');
                     dispatch({
                         type: 'LOGIN_SUCCESS',
                         payload: {
@@ -157,7 +150,7 @@ export const AuthProvider = ({ children }) => {
     const login = async (email, password) => {
         dispatch({ type: 'LOGIN_START' });
         try {
-            const response = await axios.post('/api/users/login', { email, password });
+            const response = await api.post('/api/users/login', { email, password });
             const { data } = response.data;
 
             sessionStorage.setItem('auth_token', JSON.stringify({
@@ -187,7 +180,7 @@ export const AuthProvider = ({ children }) => {
     const register = async (name, email, password) => {
         dispatch({ type: 'REGISTER_START' });
         try {
-            const response = await axios.post('/api/users/register', { name, email, password });
+            const response = await api.post('/api/users/register', { name, email, password });
             const { data } = response.data;
 
             sessionStorage.setItem('auth_token', JSON.stringify({
@@ -219,9 +212,9 @@ export const AuthProvider = ({ children }) => {
         dispatch({ type: 'LOGOUT' });
     };
 
-    const clearError = () => {
+    const clearError = useCallback(() => {
         dispatch({ type: 'CLEAR_ERROR' });
-    };
+    }, []);
 
     const value = {
         user: state.user,

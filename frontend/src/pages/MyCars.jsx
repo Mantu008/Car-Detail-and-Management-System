@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import axios from 'axios';
+import api from '../config/api';
 import { toast } from 'react-toastify';
 import CarCard from '../components/CarCard';
 import { useAuth } from '../context/authContext';
@@ -16,7 +16,7 @@ const MyCars = () => {
 
     const fetchMyCars = async () => {
         try {
-            const response = await axios.get('/api/cars/my-cars');
+            const response = await api.get('/api/cars/my-cars');
             setCars(response.data.data);
         } catch (error) {
             toast.error('Failed to fetch your cars');
@@ -29,7 +29,7 @@ const MyCars = () => {
     const handleDeleteCar = async (carId) => {
         if (window.confirm('Are you sure you want to delete this car? This action cannot be undone.')) {
             try {
-                await axios.delete(`/api/cars/${carId}`);
+                await api.delete(`/api/cars/${carId}`);
                 setCars(cars.filter(car => car._id !== carId));
                 toast.success('Car deleted successfully!');
             } catch (error) {

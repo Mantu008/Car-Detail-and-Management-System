@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
-import axios from 'axios';
+import api from '../config/api';
 
 const CarComparison = ({ onClose }) => {
     const [cars, setCars] = useState([]);
@@ -24,7 +24,7 @@ const CarComparison = ({ onClose }) => {
 
     const fetchCars = async () => {
         try {
-            const response = await axios.get('/api/cars');
+            const response = await api.get('/api/cars');
             setCars(response.data.data);
         } catch (error) {
             toast.error('Failed to fetch cars');
@@ -36,7 +36,7 @@ const CarComparison = ({ onClose }) => {
 
     const fetchServices = async (carId, setServices) => {
         try {
-            const response = await axios.get(`/api/services/${carId}`);
+            const response = await api.get(`/api/services/${carId}`);
             setServices(response.data.data);
         } catch (error) {
             console.error('Error fetching services:', error);

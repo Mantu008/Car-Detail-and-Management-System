@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../config/api';
 import CarForm from '../components/CarForm';
 
 const AddCar = () => {
@@ -19,7 +19,7 @@ const AddCar = () => {
             formData.append('image', image);
         }
 
-        await axios.post('/api/cars', formData, {
+        await api.post('/api/cars', formData, {
             headers: {
                 'Content-Type': 'multipart/form-data',
             },

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import axios from 'axios';
+import api from '../config/api';
 import { toast } from 'react-toastify';
 import CarCard from '../components/CarCard';
 import { useAuth } from '../context/authContext';
@@ -19,7 +19,7 @@ const Cars = () => {
 
     const fetchCars = async () => {
         try {
-            const response = await axios.get('/api/cars');
+            const response = await api.get('/api/cars');
             setCars(response.data.data);
         } catch (error) {
             toast.error('Failed to fetch cars');

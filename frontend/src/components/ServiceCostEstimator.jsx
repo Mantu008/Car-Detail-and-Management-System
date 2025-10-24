@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
-import axios from 'axios';
+import api from '../config/api';
 
 const ServiceCostEstimator = ({ car, onClose }) => {
     const [services, setServices] = useState([]);
@@ -17,7 +17,7 @@ const ServiceCostEstimator = ({ car, onClose }) => {
 
     const fetchServices = async () => {
         try {
-            const response = await axios.get(`/api/services/${car._id}`);
+            const response = await api.get(`/api/services/${car._id}`);
             setServices(response.data.data);
             calculateEstimates(response.data.data);
         } catch (error) {

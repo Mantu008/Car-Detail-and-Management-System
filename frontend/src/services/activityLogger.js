@@ -1,4 +1,4 @@
-import axios from 'axios';
+import api from '../config/api';
 
 class ActivityLogger {
     static logActivity = async (action, entityType, entityId, details = {}) => {
@@ -14,7 +14,7 @@ class ActivityLogger {
             };
 
             // Send to backend
-            await axios.post('/api/activities', activity);
+            await api.post('/api/activities', activity);
             
             // Also store in localStorage for offline tracking
             const localActivities = JSON.parse(localStorage.getItem('activities') || '[]');
@@ -35,7 +35,7 @@ class ActivityLogger {
 
     static getActivities = async (filters = {}) => {
         try {
-            const response = await axios.get('/api/activities', { params: filters });
+            const response = await api.get('/api/activities', { params: filters });
             return response.data;
         } catch (error) {
             console.error('Failed to fetch activities:', error);
@@ -46,7 +46,7 @@ class ActivityLogger {
 
     static getActivityStats = async () => {
         try {
-            const response = await axios.get('/api/activities/stats');
+            const response = await api.get('/api/activities/stats');
             return response.data;
         } catch (error) {
             console.error('Failed to fetch activity stats:', error);

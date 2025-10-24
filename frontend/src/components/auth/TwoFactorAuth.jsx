@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import QRCode from 'react-qr-code';
 import { toast } from 'react-toastify';
-import axios from 'axios';
+import api from '../../config/api';
 
 const TwoFactorAuth = ({ user, onSetupComplete, onClose }) => {
     const [step, setStep] = useState(1); // 1: Setup, 2: Verify, 3: Complete
@@ -19,7 +19,7 @@ const TwoFactorAuth = ({ user, onSetupComplete, onClose }) => {
 
     const generateSecret = async () => {
         try {
-            const response = await axios.post('/api/auth/2fa/setup', {
+            const response = await api.post('/api/auth/2fa/setup', {
                 userId: user._id,
                 email: user.email
             });
@@ -40,7 +40,7 @@ const TwoFactorAuth = ({ user, onSetupComplete, onClose }) => {
 
         setIsVerifying(true);
         try {
-            const response = await axios.post('/api/auth/2fa/verify', {
+            const response = await api.post('/api/auth/2fa/verify', {
                 userId: user._id,
                 code: verificationCode,
                 secret: secret

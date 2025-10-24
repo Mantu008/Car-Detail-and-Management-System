@@ -7,7 +7,7 @@ import FuelTracker from '../components/FuelTracker';
 import ServiceCostEstimator from '../components/ServiceCostEstimator';
 import TwoFactorAuth from '../components/auth/TwoFactorAuth';
 import { toast } from 'react-toastify';
-import axios from 'axios';
+import api from '../config/api';
 
 const FeaturesDashboard = () => {
     const { user, isAdmin } = useAuth();
@@ -47,7 +47,7 @@ const FeaturesDashboard = () => {
 
             // Fetch cars with better error handling
             console.log('Fetching cars from /api/cars...');
-            const carsResponse = await axios.get('/api/cars');
+            const carsResponse = await api.get('/api/cars');
             console.log('Cars response:', carsResponse.data);
 
             // Handle different response structures
@@ -68,7 +68,7 @@ const FeaturesDashboard = () => {
             let servicesData = [];
 
             try {
-                const servicesResponse = await axios.get('/api/services');
+                const servicesResponse = await api.get('/api/services');
                 console.log('Services response:', servicesResponse.data);
 
                 // Handle different response structures
@@ -87,7 +87,7 @@ const FeaturesDashboard = () => {
                     const allServices = [];
                     for (const car of carsData.slice(0, 5)) { // Limit to first 5 cars to avoid too many requests
                         try {
-                            const carServicesResponse = await axios.get(`/api/services/${car._id}`);
+                            const carServicesResponse = await api.get(`/api/services/${car._id}`);
                             if (carServicesResponse.data && Array.isArray(carServicesResponse.data)) {
                                 allServices.push(...carServicesResponse.data);
                             } else if (carServicesResponse.data && carServicesResponse.data.data && Array.isArray(carServicesResponse.data.data)) {
@@ -216,7 +216,7 @@ const FeaturesDashboard = () => {
                                 onClick={async () => {
                                     try {
                                         console.log('Testing API endpoints...');
-                                        const carsTest = await axios.get('/api/cars');
+                                        const carsTest = await api.get('/api/cars');
                                         console.log('Cars API test result:', carsTest.data);
                                         toast.success(`Cars API working: ${JSON.stringify(carsTest.data).substring(0, 100)}...`);
                                     } catch (error) {

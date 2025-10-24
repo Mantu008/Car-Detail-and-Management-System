@@ -16,10 +16,33 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Enable CORS
+// Enable CORS - More permissive for development
 app.use(cors({
-  origin: '*', // Not recommended with credentials
-  credentials: false // Must be false if origin is '*'
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    const allowedOrigins = [
+      'http://localhost:3000',
+      'http://localhost:3001', 
+      'http://127.0.0.1:3000',
+      'http://127.0.0.1:3001',
+      process.env.CLIENT_URL
+    ].filter(Boolean);
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      console.log('CORS blocked origin:', origin);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+  exposedHeaders: ['Content-Length', 'X-Foo', 'X-Bar'],
+  preflightContinue: false,
+  optionsSuccessStatus: 200
 }));
 
 
@@ -31,13 +54,8 @@ app.use('/api/users', require('./routes/userRoutes'));
 app.use('/api/cars', require('./routes/carRoutes'));
 app.use('/api/services', require('./routes/serviceRoutes'));
 
-
 app.get('/', (req, res) => {
-  res.json({
-    success: true,
-    message: 'Car Management System API is running',
-    timestamp: new Date().toISOString()
-  });
+   res.send("Car Management System API is running");
 });
 
 // Health check endpoint
