@@ -1,4 +1,27 @@
 const Car = require('../models/Car');
+const path = require('path');
+const fs = require('fs');
+
+// Helper function to handle file uploads
+const handleFileUpload = (req) => {
+  if (!req.file) return null;
+  
+  const isVercel = process.env.VERCEL === '1';
+  
+  if (isVercel) {
+    // For Vercel, we'll use a placeholder URL
+    // In a real production app, you'd upload to cloud storage (AWS S3, Cloudinary, etc.)
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const filename = 'car-' + uniqueSuffix + path.extname(req.file.originalname);
+    
+    // Return a placeholder URL for now
+    // TODO: Implement cloud storage upload (AWS S3, Cloudinary, etc.)
+    return `https://via.placeholder.com/400x300/cccccc/666666?text=Car+Image`;
+  } else {
+    // For local development, use the file path
+    return `/uploads/cars/${req.file.filename}`;
+  }
+};
 
 // @desc    Get all cars
 // @route   GET /api/cars
@@ -64,8 +87,9 @@ const createCar = async (req, res) => {
     };
 
     // Add image path if file was uploaded
-    if (req.file) {
-      carData.image = `/uploads/cars/${req.file.filename}`;
+    const imagePath = handleFileUpload(req);
+    if (imagePath) {
+      carData.image = imagePath;
     }
 
     const car = await Car.create(carData);
@@ -112,8 +136,9 @@ const updateCar = async (req, res) => {
     const updateData = { ...req.body };
 
     // Add image path if file was uploaded
-    if (req.file) {
-      updateData.image = `/uploads/cars/${req.file.filename}`;
+    const imagePath = handleFileUpload(req);
+    if (imagePath) {
+      updateData.image = imagePath;
     }
 
     const updatedCar = await Car.findByIdAndUpdate(
@@ -130,9 +155,11 @@ const updateCar = async (req, res) => {
     });
   } catch (error) {
     console.error('Update car error:', error.message);
+    console.error('Full error:', error);
     res.status(500).json({
       success: false,
-      message: 'Server error'
+      message: 'Server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };
