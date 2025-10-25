@@ -17,33 +17,40 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Enable CORS - More permissive for development
+
 app.use(cors({
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
+  origin: '*',  // ✅ allow all origins
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}))
+
+// app.use(cors({
+//   origin: function (origin, callback) {
+//     // Allow requests with no origin (like mobile apps or curl requests)
+//     if (!origin) return callback(null, true);
     
-    const allowedOrigins = [
-      'http://localhost:3000',
-      'http://localhost:3001', 
-      'http://127.0.0.1:3000',
-      'http://127.0.0.1:3001',
-      process.env.CLIENT_URL
-    ].filter(Boolean);
+//     const allowedOrigins = [
+//       'http://localhost:3000',
+//       'http://localhost:3001', 
+//       'http://127.0.0.1:3000',
+//       'http://127.0.0.1:3001',
+//       process.env.CLIENT_URL
+//     ].filter(Boolean);
     
-    if (allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      console.log('CORS blocked origin:', origin);
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
-  exposedHeaders: ['Content-Length', 'X-Foo', 'X-Bar'],
-  preflightContinue: false,
-  optionsSuccessStatus: 200
-}));
+//     if (allowedOrigins.indexOf(origin) !== -1) {
+//       callback(null, true);
+//     } else {
+//       console.log('CORS blocked origin:', origin);
+//       callback(new Error('Not allowed by CORS'));
+//     }
+//   },
+//   credentials: true,
+//   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+//   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+//   exposedHeaders: ['Content-Length', 'X-Foo', 'X-Bar'],
+//   preflightContinue: false,
+//   optionsSuccessStatus: 200
+// }));
 
 
 // Serve static files from uploads directory
