@@ -9,14 +9,13 @@ const handleFileUpload = (req) => {
   const isVercel = process.env.VERCEL === '1';
   
   if (isVercel) {
-    // For Vercel, we'll use a placeholder URL
+    // For Vercel, we'll use a more reliable placeholder service
     // In a real production app, you'd upload to cloud storage (AWS S3, Cloudinary, etc.)
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     const filename = 'car-' + uniqueSuffix + path.extname(req.file.originalname);
     
-    // Return a placeholder URL for now
-    // TODO: Implement cloud storage upload (AWS S3, Cloudinary, etc.)
-    return `https://via.placeholder.com/400x300/cccccc/666666?text=Car+Image`;
+    // Use a more reliable placeholder service
+    return `https://picsum.photos/400/300?random=${uniqueSuffix}`;
   } else {
     // For local development, use the file path
     return `/uploads/cars/${req.file.filename}`;

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import { getImageUrl, handleImageError } from '../utils/imageUtils';
 
 const CarForm = ({ car, onSubmit, onCancel }) => {
     const [formData, setFormData] = useState({
@@ -198,9 +199,10 @@ const CarForm = ({ car, onSubmit, onCancel }) => {
                     {imagePreview && (
                         <div className="mt-4">
                             <img
-                                src={imagePreview}
+                                src={getImageUrl(imagePreview)}
                                 alt="Car preview"
                                 className="w-full h-48 object-cover rounded-lg border border-gray-300"
+                                onError={handleImageError}
                             />
                         </div>
                     )}

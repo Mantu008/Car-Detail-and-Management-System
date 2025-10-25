@@ -6,6 +6,7 @@ import { useAuth } from '../context/authContext';
 import CarQRCode from '../components/CarQRCode';
 import FuelTracker from '../components/FuelTracker';
 import ServiceCostEstimator from '../components/ServiceCostEstimator';
+import { getImageUrl, handleImageError } from '../utils/imageUtils';
 
 const CarDetail = () => {
     const [car, setCar] = useState(null);
@@ -129,12 +130,10 @@ const CarDetail = () => {
                             {car.image && (
                                 <div className="mb-6">
                                     <img
-                                        src={car.image}
+                                        src={getImageUrl(car.image)}
                                         alt={`${car.brand} ${car.model}`}
                                         className="w-full h-64 object-cover rounded-lg"
-                                        onError={(e) => {
-                                            e.target.style.display = 'none';
-                                        }}
+                                        onError={handleImageError}
                                     />
                                 </div>
                             )}

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import CarQRCode from './CarQRCode';
+import { getImageUrl, handleImageError } from '../utils/imageUtils';
 
 const CarCard = ({ car }) => {
     const [showQRCode, setShowQRCode] = useState(false);
@@ -11,12 +12,10 @@ const CarCard = ({ car }) => {
             {car.image && (
                 <div className="mb-4">
                     <img
-                        src={car.image}
+                        src={getImageUrl(car.image)}
                         alt={`${car.brand} ${car.model}`}
                         className="w-full h-48 object-cover rounded-lg"
-                        onError={(e) => {
-                            e.target.style.display = 'none';
-                        }}
+                        onError={handleImageError}
                     />
                 </div>
             )}
