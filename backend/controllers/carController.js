@@ -1,21 +1,30 @@
 const Car = require('../models/Car');
 const path = require('path');
 const fs = require('fs');
+const { uploadToCloud } = require('../services/cloudStorage');
 
 // Helper function to handle file uploads
-const handleFileUpload = (req) => {
+const handleFileUpload = async (req) => {
   if (!req.file) return null;
   
   const isVercel = process.env.VERCEL === '1';
   
   if (isVercel) {
-    // For Vercel, we'll use a more reliable placeholder service
-    // In a real production app, you'd upload to cloud storage (AWS S3, Cloudinary, etc.)
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    const filename = 'car-' + uniqueSuffix + path.extname(req.file.originalname);
-    
-    // Use a more reliable placeholder service
-    return `https://picsum.photos/400/300?random=${uniqueSuffix}`;
+    // For Vercel, try cloud storage first, then fallback to base64
+    try {
+      const cloudUrl = await uploadToCloud(
+        req.file.buffer,
+        req.file.mimetype,
+        req.file.originalname
+      );
+      return cloudUrl;
+    } catch (error) {
+      console.error('Cloud upload failed, using base64:', error);
+      // Fallback to base64
+      const base64 = req.file.buffer.toString('base64');
+      const mimeType = req.file.mimetype;
+      return `data:${mimeType};base64,${base64}`;
+    }
   } else {
     // For local development, use the file path
     return `/uploads/cars/${req.file.filename}`;
@@ -86,7 +95,7 @@ const createCar = async (req, res) => {
     };
 
     // Add image path if file was uploaded
-    const imagePath = handleFileUpload(req);
+    const imagePath = await handleFileUpload(req);
     if (imagePath) {
       carData.image = imagePath;
     }
@@ -135,7 +144,7 @@ const updateCar = async (req, res) => {
     const updateData = { ...req.body };
 
     // Add image path if file was uploaded
-    const imagePath = handleFileUpload(req);
+    const imagePath = await handleFileUpload(req);
     if (imagePath) {
       updateData.image = imagePath;
     }

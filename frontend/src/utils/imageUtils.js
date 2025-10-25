@@ -8,6 +8,11 @@
 export const getImageUrl = (imagePath) => {
   if (!imagePath) return null;
   
+  // If it's a base64 data URL, return as is
+  if (imagePath.startsWith('data:')) {
+    return imagePath;
+  }
+  
   // If it's already a full URL (starts with http/https), return as is
   if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
     return imagePath;
