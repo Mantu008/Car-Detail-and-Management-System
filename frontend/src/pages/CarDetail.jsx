@@ -40,8 +40,8 @@ const CarDetail = () => {
             const response = await api.get(`/api/cars/${id}`);
             setCar(response.data.data);
         } catch (error) {
-            toast.error('Failed to fetch car details');
-            console.error('Error fetching car:', error);
+            toast.error('Failed to fetch vehicle details');
+            console.error('Error fetching vehicle:', error);
         } finally {
             setLoading(false);
         }
@@ -105,12 +105,12 @@ const CarDetail = () => {
         return (
             <div className="min-h-screen flex items-center justify-center">
                 <div className="text-center">
-                    <h2 className="text-2xl font-bold text-gray-800 mb-4">Car not found</h2>
+                    <h2 className="text-2xl font-bold text-gray-800 mb-4">Vehicle not found</h2>
                     <Link
                         to="/cars"
                         className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
                     >
-                        Back to Cars
+                        Back to Vehicles
                     </Link>
                 </div>
             </div>
@@ -226,7 +226,7 @@ const CarDetail = () => {
                                         to={`/edit-car/${car._id}`}
                                         className="block w-full bg-blue-600 hover:bg-blue-700 text-white text-center py-3 px-4 rounded-lg font-medium transition-colors"
                                     >
-                                        Edit Car Details
+                                        Edit Vehicle Details
                                     </Link>
 
                                     <button
@@ -335,7 +335,7 @@ const CarDetail = () => {
                         {services.length === 0 ? (
                             <div className="text-center py-8">
                                 <div className="text-4xl mb-4">🔧</div>
-                                <p className="text-gray-600">No service records found for this car.</p>
+                                <p className="text-gray-600">No service records found for this vehicle.</p>
                                 {canManageCar && (
                                     <button
                                         onClick={() => setShowServiceForm(true)}

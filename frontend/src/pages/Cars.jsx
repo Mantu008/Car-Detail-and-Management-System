@@ -56,9 +56,9 @@ const Cars = () => {
         <div className="min-h-screen bg-gray-50 py-8">
             <div className="max-w-7xl mx-auto px-4">
                 <div className="mb-8">
-                    <h1 className="text-3xl font-bold text-gray-800 mb-4">All Cars</h1>
+                    <h1 className="text-3xl font-bold text-gray-800 mb-4">All Vehicles</h1>
                     <p className="text-gray-600">
-                        Browse through our collection of cars and find the perfect match for you.
+                        Browse through our collection of vehicles and find the perfect match for you.
                     </p>
                 </div>
 
@@ -133,7 +133,7 @@ const Cars = () => {
                             className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors inline-flex items-center"
                         >
                             <span className="mr-2">+</span>
-                            Add New Car
+                            Add New Vehicle
                         </Link>
                     </div>
                 )}
@@ -142,11 +142,11 @@ const Cars = () => {
                 {filteredCars.length === 0 ? (
                     <div className="text-center py-12">
                         <div className="text-6xl mb-4">🚗</div>
-                        <h3 className="text-xl font-semibold text-gray-800 mb-2">No cars found</h3>
+                        <h3 className="text-xl font-semibold text-gray-800 mb-2">No vehicles found</h3>
                         <p className="text-gray-600">
                             {searchTerm || filterBrand || filterYear
                                 ? 'Try adjusting your search criteria'
-                                : 'No cars are available at the moment'
+                                : 'No vehicles are available at the moment'
                             }
                         </p>
                     </div>
@@ -160,7 +160,7 @@ const Cars = () => {
 
                 {/* Results count */}
                 <div className="mt-8 text-center text-gray-600">
-                    Showing {filteredCars.length} of {cars.length} cars
+                    Showing {filteredCars.length} of {cars.length} vehicles
                 </div>
             </div>
         </div>

@@ -46,8 +46,8 @@ const FeaturesDashboard = () => {
             setLoading(true);
 
             // Fetch cars with better error handling
-            console.log('Fetching cars from /api/cars...');
-            const carsResponse = await api.get('/api/cars');
+            console.log('Fetching cars from /api/cars/my-cars...');
+            const carsResponse = await api.get('/api/cars/my-cars');
             console.log('Cars response:', carsResponse.data);
 
             // Handle different response structures
@@ -123,19 +123,19 @@ const FeaturesDashboard = () => {
         {
             id: 'reports',
             title: 'Report Generation',
-            description: 'Generate PDF and Excel reports for cars and services',
+            description: 'Generate PDF and Excel reports for vehicles and services',
             icon: '📊',
             color: 'bg-blue-500',
             features: [
                 {
-                    name: 'All Cars Report',
-                    description: 'Generate comprehensive report of all cars',
+                    name: 'All Vehicles Report',
+                    description: 'Generate comprehensive report of all vehicles',
                     action: () => handleReportGeneration('all-cars'),
                     excelAction: () => handleExcelGeneration('all-cars')
                 },
                 {
                     name: 'Service History Report',
-                    description: 'Detailed service history for specific cars',
+                    description: 'Detailed service history for specific vehicles',
                     action: () => handleReportGeneration('service-history'),
                     excelAction: () => handleExcelGeneration('service-history')
                 },
@@ -149,8 +149,8 @@ const FeaturesDashboard = () => {
         },
         {
             id: 'comparison',
-            title: 'Car Comparison Tool',
-            description: 'Compare two cars side-by-side with detailed analysis',
+            title: 'Vehicle Comparison Tool',
+            description: 'Compare two vehicles side-by-side with detailed analysis',
             icon: '⚖️',
             color: 'bg-green-500',
             action: () => setShowCarComparison(true)
@@ -162,7 +162,11 @@ const FeaturesDashboard = () => {
             icon: '⛽',
             color: 'bg-yellow-500',
             action: () => {
-                toast.info('Please select a car first to track fuel efficiency');
+                if (!selectedCar) {
+                    toast.info('Please select a vehicle from the dropdown above first');
+                    return;
+                }
+                setShowFuelTracker(true);
             }
         },
         {
@@ -172,17 +176,13 @@ const FeaturesDashboard = () => {
             icon: '💰',
             color: 'bg-purple-500',
             action: () => {
-                toast.info('Please select a car first to estimate service costs');
+                if (!selectedCar) {
+                    toast.info('Please select a vehicle from the dropdown above first');
+                    return;
+                }
+                setShowCostEstimator(true);
             }
         },
-        {
-            id: 'security',
-            title: 'Two-Factor Authentication',
-            description: 'Enhanced security with OTP verification',
-            icon: '🔐',
-            color: 'bg-red-500',
-            action: () => setShow2FA(true)
-        }
     ];
 
     if (loading) {
@@ -199,11 +199,11 @@ const FeaturesDashboard = () => {
                 <div className="mb-8">
                     <h1 className="text-4xl font-bold text-gray-800 mb-4">Advanced Features</h1>
                     <p className="text-lg text-gray-600">
-                        Explore powerful tools to manage and analyze your car data
+                        Explore powerful tools to manage and analyze your vehicle data
                     </p>
                     <div className="mt-4 flex items-center justify-between">
                         <div className="text-sm text-gray-500">
-                            Data loaded: {cars.length} cars, {services.length} services
+                            Data loaded: {cars.length} vehicles, {services.length} services
                         </div>
                         <div className="flex space-x-2">
                             <button
@@ -212,23 +212,34 @@ const FeaturesDashboard = () => {
                             >
                                 🔄 Refresh Data
                             </button>
-                            <button
-                                onClick={async () => {
-                                    try {
-                                        console.log('Testing API endpoints...');
-                                        const carsTest = await api.get('/api/cars');
-                                        console.log('Cars API test result:', carsTest.data);
-                                        toast.success(`Cars API working: ${JSON.stringify(carsTest.data).substring(0, 100)}...`);
-                                    } catch (error) {
-                                        console.error('Cars API test failed:', error);
-                                        toast.error(`Cars API failed: ${error.message}`);
-                                    }
-                                }}
-                                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-                            >
-                                🧪 Test API
-                            </button>
+
                         </div>
+                    </div>
+
+                    {/* Vehicle Selection for Tools */}
+                    <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 mt-6">
+                        <label htmlFor="vehicle-select" className="block text-sm font-medium text-gray-700 mb-2">
+                            Select Vehicle for Analysis Tools
+                        </label>
+                        <select
+                            id="vehicle-select"
+                            className="w-full md:w-1/3 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            value={selectedCar?._id || ''}
+                            onChange={(e) => {
+                                const car = cars.find(c => c._id === e.target.value);
+                                handleCarSelection(car);
+                            }}
+                        >
+                            <option value="">-- Select a Vehicle --</option>
+                            {cars.map(car => (
+                                <option key={car._id} value={car._id}>
+                                    {car.brand} {car.model} ({car.year})
+                                </option>
+                            ))}
+                        </select>
+                        <p className="text-sm text-gray-500 mt-2">
+                            Select a vehicle to use Fuel Tracker and Cost Estimator
+                        </p>
                     </div>
                 </div>
 
@@ -272,7 +283,7 @@ const FeaturesDashboard = () => {
                                 <li>2. Verify you're logged in to the application</li>
                                 <li>3. Check browser console for detailed error messages</li>
                                 <li>4. Try the "Test API" button to verify connectivity</li>
-                                <li>5. Make sure you have cars in your system</li>
+                                <li>5. Make sure you have vehicles in your system</li>
                             </ul>
                             <p className="text-xs text-gray-600 mt-2">
                                 Open browser console (F12) to see detailed error messages.
@@ -319,7 +330,7 @@ const FeaturesDashboard = () => {
                                             <p className="text-sm text-gray-600">{subFeature.description}</p>
                                             {cars.length === 0 && (
                                                 <p className="text-xs text-yellow-600 mt-1">
-                                                    ⚠️ No cars found. Add some cars first to generate meaningful reports.
+                                                    ⚠️ No vehicles found. Add some vehicles first to generate meaningful reports.
                                                 </p>
                                             )}
                                         </div>
@@ -401,7 +412,10 @@ const FeaturesDashboard = () => {
                 )}
 
                 {showCarComparison && (
-                    <CarComparison onClose={() => setShowCarComparison(false)} />
+                    <CarComparison
+                        cars={cars} // Pass cars prop to avoid re-fetching
+                        onClose={() => setShowCarComparison(false)}
+                    />
                 )}
 
                 {showFuelTracker && selectedCar && (
@@ -418,16 +432,7 @@ const FeaturesDashboard = () => {
                     />
                 )}
 
-                {show2FA && (
-                    <TwoFactorAuth
-                        user={user}
-                        onSetupComplete={() => {
-                            toast.success('2FA setup completed!');
-                            setShow2FA(false);
-                        }}
-                        onClose={() => setShow2FA(false)}
-                    />
-                )}
+
             </div>
         </div>
     );

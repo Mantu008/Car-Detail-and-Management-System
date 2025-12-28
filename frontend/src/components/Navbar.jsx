@@ -1,12 +1,26 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/authContext';
+import { useNotifications } from '../context/notificationContext';
 import QRCodeScanner from './QRCodeScanner';
 
 const Navbar = () => {
     const { user, logout, isAuthenticated, isAdmin, loading } = useAuth();
+    const { unreadCount } = useNotifications();
     const navigate = useNavigate();
+    const location = useLocation();
     const [showQRScanner, setShowQRScanner] = useState(false);
+
+    // Defensively hide Navbar on admin routes
+    const currentPath = location.pathname.toLowerCase();
+    const isAdminRoute = currentPath.startsWith('/admin') || currentPath.includes('/admin/');
+
+    console.log('Navbar - Current path:', location.pathname, 'Is Admin?', isAdminRoute);
+
+    if (isAdminRoute) {
+        console.log('Navbar hidden for admin route');
+        return null;
+    }
 
     const handleLogout = () => {
         logout();
@@ -18,11 +32,11 @@ const Navbar = () => {
             <div className="max-w-7xl mx-auto px-4">
                 <div className="flex justify-between h-16">
                     <div className="flex items-center">
-                        <Link to="/" className="flex items-center space-x-2">
+                        <Link to={isAdmin ? "/admin/dashboard" : "/"} className="flex items-center space-x-2">
                             <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
                                 <span className="text-white font-bold text-lg">🚗</span>
                             </div>
-                            <span className="text-xl font-bold text-gray-800">Car Management</span>
+                            <span className="text-xl font-bold text-gray-800">Vehicle Management</span>
                         </Link>
                     </div>
 
@@ -34,12 +48,14 @@ const Navbar = () => {
                             Home
                         </Link>
 
-                        <Link
-                            to="/cars"
-                            className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
-                        >
-                            Cars
-                        </Link>
+                        {isAdmin && (
+                            <Link
+                                to="/cars"
+                                className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                            >
+                                All Vehicles
+                            </Link>
+                        )}
 
                         <Link
                             to="/features"
@@ -66,12 +82,33 @@ const Navbar = () => {
                                     to="/my-cars"
                                     className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
                                 >
-                                    My Cars
+                                    My Vehicles
+                                </Link>
+
+                                <Link
+                                    to="/analytics"
+                                    className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                                >
+                                    Analytics
+                                </Link>
+
+                                <Link
+                                    to="/support"
+                                    className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                                >
+                                    Support
+                                </Link>
+
+                                <Link
+                                    to="/notifications"
+                                    className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                                >
+                                    🔔
                                 </Link>
 
                                 {isAdmin && (
                                     <Link
-                                        to="/admin"
+                                        to="/admin/dashboard"
                                         className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
                                     >
                                         Admin

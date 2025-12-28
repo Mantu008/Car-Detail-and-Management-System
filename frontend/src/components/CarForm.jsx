@@ -11,7 +11,8 @@ const CarForm = ({ car, onSubmit, onCancel }) => {
         price: '',
         color: '',
         mileage: '',
-        description: ''
+        description: '',
+        type: 'Car'
     });
     const [image, setImage] = useState(null);
     const [imagePreview, setImagePreview] = useState(null);
@@ -26,7 +27,8 @@ const CarForm = ({ car, onSubmit, onCancel }) => {
                 price: car.price || '',
                 color: car.color || '',
                 mileage: car.mileage || '',
-                description: car.description || ''
+                description: car.description || '',
+                type: car.type || 'Car'
             });
             if (car.image) {
                 setImagePreview(car.image);
@@ -68,7 +70,7 @@ const CarForm = ({ car, onSubmit, onCancel }) => {
             };
 
             await onSubmit(submitData, image);
-            toast.success(car ? 'Car updated successfully!' : 'Car added successfully!');
+            toast.success(car ? 'Vehicle updated successfully!' : 'Vehicle added successfully!');
         } catch (error) {
             toast.error(error.response?.data?.message || 'Something went wrong!');
         } finally {
@@ -79,11 +81,31 @@ const CarForm = ({ car, onSubmit, onCancel }) => {
     return (
         <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-lg p-6">
             <h2 className="text-2xl font-bold text-gray-800 mb-6">
-                {car ? 'Edit Car' : 'Add New Car'}
+                {car ? 'Edit Vehicle' : 'Add New Vehicle'}
             </h2>
 
             <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label htmlFor="type" className="block text-sm font-medium text-gray-700 mb-2">
+                            Vehicle Type *
+                        </label>
+                        <select
+                            id="type"
+                            name="type"
+                            required
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            value={formData.type}
+                            onChange={handleChange}
+                        >
+                            <option value="Car">Car</option>
+                            <option value="Motorbike">Motorbike</option>
+                            <option value="Truck">Truck</option>
+                            <option value="Auto">Auto</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+
                     <div>
                         <label htmlFor="brand" className="block text-sm font-medium text-gray-700 mb-2">
                             Brand *
@@ -186,7 +208,7 @@ const CarForm = ({ car, onSubmit, onCancel }) => {
                 {/* Image Upload Section */}
                 <div>
                     <label htmlFor="image" className="block text-sm font-medium text-gray-700 mb-2">
-                        Car Image
+                        Vehicle Image
                     </label>
                     <input
                         type="file"
@@ -200,7 +222,7 @@ const CarForm = ({ car, onSubmit, onCancel }) => {
                         <div className="mt-4">
                             <img
                                 src={getImageUrl(imagePreview)}
-                                alt="Car preview"
+                                alt="Vehicle preview"
                                 className="w-full h-48 object-cover rounded-lg border border-gray-300"
                                 onError={handleImageError}
                             />
@@ -220,7 +242,7 @@ const CarForm = ({ car, onSubmit, onCancel }) => {
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         value={formData.description}
                         onChange={handleChange}
-                        placeholder="Additional details about the car..."
+                        placeholder="Additional details about the vehicle..."
                     />
                     <p className="text-sm text-gray-500 mt-1">
                         {formData.description.length}/500 characters
@@ -233,7 +255,7 @@ const CarForm = ({ car, onSubmit, onCancel }) => {
                         disabled={loading}
                         className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white py-2 px-4 rounded-lg font-medium transition-colors"
                     >
-                        {loading ? 'Saving...' : (car ? 'Update Car' : 'Add Car')}
+                        {loading ? 'Saving...' : (car ? 'Update Vehicle' : 'Add Vehicle')}
                     </button>
 
                     {onCancel && (

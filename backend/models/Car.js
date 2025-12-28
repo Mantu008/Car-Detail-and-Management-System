@@ -49,6 +49,17 @@ const carSchema = new mongoose.Schema({
   image: {
     type: String,
     default: null
+  },
+  type: {
+    type: String,
+    enum: ['Car', 'Motorbike', 'Truck', 'Auto', 'Other'],
+    default: 'Car',
+    required: true
+  },
+  status: {
+    type: String,
+    enum: ['normal', 'suspicious'],
+    default: 'normal'
   }
 }, {
   timestamps: true

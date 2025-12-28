@@ -29,6 +29,10 @@ const CarCard = ({ car }) => {
 
             <div className="space-y-2 mb-4">
                 <div className="flex justify-between">
+                    <span className="text-gray-600">Type:</span>
+                    <span className="font-medium">{car.type || 'Car'}</span>
+                </div>
+                <div className="flex justify-between">
                     <span className="text-gray-600">Brand:</span>
                     <span className="font-medium">{car.brand}</span>
                 </div>

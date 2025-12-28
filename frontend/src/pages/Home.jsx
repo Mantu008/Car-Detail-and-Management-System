@@ -1,9 +1,16 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/authContext';
 
 const Home = () => {
     const { isAuthenticated, user } = useAuth();
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        if (isAuthenticated && user?.role === 'admin') {
+            navigate('/admin/dashboard');
+        }
+    }, [isAuthenticated, user, navigate]);
 
     return (
         <div className="min-h-screen bg-gray-50">
@@ -12,10 +19,10 @@ const Home = () => {
                 <div className="max-w-7xl mx-auto px-4 py-20">
                     <div className="text-center">
                         <h1 className="text-4xl md:text-6xl font-bold mb-6">
-                            Car Detail and Management System
+                            Vehicle Detail and Management System
                         </h1>
                         <p className="text-xl md:text-2xl mb-8 text-blue-100">
-                            Efficiently manage your car inventory and service records
+                            Efficiently manage your vehicle inventory and service records
                         </p>
 
                         {isAuthenticated ? (
@@ -24,14 +31,16 @@ const Home = () => {
                                     to="/my-cars"
                                     className="bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-blue-50 transition-colors"
                                 >
-                                    View My Cars
+                                    View My Vehicles
                                 </Link>
-                                <Link
-                                    to="/cars"
-                                    className="bg-transparent border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-blue-600 transition-colors"
-                                >
-                                    Browse All Cars
-                                </Link>
+                                {user?.role === 'admin' && (
+                                    <Link
+                                        to="/cars"
+                                        className="bg-transparent border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-blue-600 transition-colors"
+                                    >
+                                        Browse All Vehicles
+                                    </Link>
+                                )}
                             </div>
                         ) : (
                             <div className="space-x-4">
@@ -41,12 +50,10 @@ const Home = () => {
                                 >
                                     Get Started
                                 </Link>
-                                <Link
-                                    to="/cars"
-                                    className="bg-transparent border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-blue-600 transition-colors"
-                                >
-                                    Browse Cars
-                                </Link>
+                                {/* Only show Browse Vehicles if admin (though unauthenticated users can't be admin, we just hide it for guests) */}
+                                {/* Or maybe we want guests to see it? The requirement says "a person can see its own veachale... not all veachale". 
+                                    So guests shouldn't see all vehicles either. */}
+                                {/* Removing Browse Vehicles for guests as per requirement */}
                             </div>
                         )}
                     </div>
@@ -60,7 +67,7 @@ const Home = () => {
                         Why Choose Our System?
                     </h2>
                     <p className="text-gray-600 text-lg">
-                        Comprehensive car management solution for individuals and businesses
+                        Comprehensive vehicle management solution for individuals and businesses
                     </p>
                 </div>
 
@@ -69,9 +76,9 @@ const Home = () => {
                         <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
                             <span className="text-2xl">🚗</span>
                         </div>
-                        <h3 className="text-xl font-semibold mb-3">Car Management</h3>
+                        <h3 className="text-xl font-semibold mb-3">Vehicle Management</h3>
                         <p className="text-gray-600">
-                            Add, edit, and manage your car inventory with detailed information including brand, model, year, and specifications.
+                            Add, edit, and manage your vehicle inventory with detailed information including brand, model, year, and specifications.
                         </p>
                     </div>
 
@@ -106,12 +113,12 @@ const Home = () => {
                             <div>
                                 <div className="text-4xl font-bold mb-2">📊</div>
                                 <h3 className="text-xl font-semibold mb-2">Dashboard</h3>
-                                <p className="text-blue-100">View your car statistics and quick actions</p>
+                                <p className="text-blue-100">View your vehicle statistics and quick actions</p>
                             </div>
                             <div>
                                 <div className="text-4xl font-bold mb-2">⚙️</div>
                                 <h3 className="text-xl font-semibold mb-2">Management</h3>
-                                <p className="text-blue-100">Manage your cars and services efficiently</p>
+                                <p className="text-blue-100">Manage your vehicles and services efficiently</p>
                             </div>
                             <div>
                                 <div className="text-4xl font-bold mb-2">🔒</div>

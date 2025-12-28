@@ -173,7 +173,17 @@ const deleteService = async (req, res) => {
 // @access  Private/Admin
 const getAllServices = async (req, res) => {
   try {
-    const services = await Service.find({})
+    let query = {};
+    
+    // If not admin, only get services for user's cars
+    if (req.user.role !== 'admin') {
+      // Find all cars owned by user
+      const userCars = await Car.find({ owner: req.user._id }).select('_id');
+      const carIds = userCars.map(car => car._id);
+      query = { car: { $in: carIds } };
+    }
+
+    const services = await Service.find(query)
       .populate('car', 'brand model year owner')
       .sort({ date: -1 });
 

@@ -5,7 +5,7 @@ import { toast } from 'react-toastify';
 const CarQRCode = ({ car, onClose }) => {
     const [showQR, setShowQR] = useState(false);
 
-    // Generate QR code data with car information
+    // Generate QR code data with vehicle information
     const generateQRData = () => {
         const baseUrl = window.location.origin;
         const carUrl = `${baseUrl}/cars/${car._id}`;
@@ -50,6 +50,8 @@ const CarQRCode = ({ car, onClose }) => {
                 downloadLink.href = pngFile;
                 downloadLink.click();
 
+                downloadLink.click();
+
                 toast.success('QR Code downloaded successfully!');
             };
 
@@ -71,9 +73,9 @@ const CarQRCode = ({ car, onClose }) => {
             downloadLink.click();
             URL.revokeObjectURL(url);
 
-            toast.success('Car data downloaded as JSON!');
+            toast.success('Vehicle data downloaded as JSON!');
         } catch (error) {
-            toast.error('Failed to download car data');
+            toast.error('Failed to download vehicle data');
             console.error('Download error:', error);
         }
     };
@@ -81,7 +83,7 @@ const CarQRCode = ({ car, onClose }) => {
     const handleCopyData = () => {
         const qrData = generateQRData();
         navigator.clipboard.writeText(qrData).then(() => {
-            toast.success('Car data copied to clipboard!');
+            toast.success('Vehicle data copied to clipboard!');
         }).catch(() => {
             toast.error('Failed to copy data');
         });
@@ -92,7 +94,7 @@ const CarQRCode = ({ car, onClose }) => {
             <div className="bg-white rounded-xl shadow-2xl p-8 max-w-md w-full mx-4">
                 <div className="flex justify-between items-center mb-6">
                     <h2 className="text-2xl font-bold text-gray-800">
-                        Car QR Code
+                        Vehicle QR Code
                     </h2>
                     <button
                         onClick={onClose}
@@ -107,7 +109,7 @@ const CarQRCode = ({ car, onClose }) => {
                         {car.brand} {car.model} ({car.year})
                     </h3>
                     <p className="text-sm text-gray-600">
-                        Scan this QR code to access car details and service history
+                        Scan this QR code to access vehicle details and service history
                     </p>
                 </div>
 
@@ -135,14 +137,14 @@ const CarQRCode = ({ car, onClose }) => {
                         onClick={handleDownloadData}
                         className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 rounded-lg font-medium transition-colors"
                     >
-                        📄 Download Car Data (JSON)
+                        📄 Download Vehicle Data (JSON)
                     </button>
 
                     <button
                         onClick={handleCopyData}
                         className="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg font-medium transition-colors"
                     >
-                        📋 Copy Car Data
+                        📋 Copy Vehicle Data
                     </button>
 
                     <button
@@ -166,7 +168,7 @@ const CarQRCode = ({ car, onClose }) => {
 
                 <div className="mt-6 text-center">
                     <p className="text-xs text-gray-500">
-                        This QR code contains car details and links to service history
+                        This QR code contains vehicle details and links to service history
                     </p>
                 </div>
             </div>

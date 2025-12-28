@@ -7,14 +7,18 @@ const LoginForm = () => {
         email: '',
         password: ''
     });
-    const { login, error, clearError, isAuthenticated } = useAuth();
+    const { login, error, clearError, isAuthenticated, isAdmin, user } = useAuth();
     const navigate = useNavigate();
 
     useEffect(() => {
-        if (isAuthenticated) {
-            navigate('/');
+        if (isAuthenticated && user) {
+            if (user.role === 'admin') {
+                navigate('/admin/dashboard');
+            } else {
+                navigate('/');
+            }
         }
-    }, [isAuthenticated, navigate]);
+    }, [isAuthenticated, user, navigate]);
 
     useEffect(() => {
         clearError();
@@ -29,10 +33,8 @@ const LoginForm = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        const result = await login(formData.email, formData.password);
-        if (result.success) {
-            navigate('/');
-        }
+        await login(formData.email, formData.password);
+        // Redirect will be handled by useEffect
     };
 
     return (

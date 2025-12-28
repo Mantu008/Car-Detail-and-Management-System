@@ -2,16 +2,18 @@ import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import api from '../config/api';
 
-const CarComparison = ({ onClose }) => {
-    const [cars, setCars] = useState([]);
+const CarComparison = ({ onClose, cars: propCars }) => {
+    const [cars, setCars] = useState(propCars || []);
     const [selectedCars, setSelectedCars] = useState([null, null]);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(!propCars);
     const [car1Services, setCar1Services] = useState([]);
     const [car2Services, setCar2Services] = useState([]);
 
     useEffect(() => {
-        fetchCars();
-    }, []);
+        if (!propCars) {
+            fetchCars();
+        }
+    }, [propCars]);
 
     useEffect(() => {
         if (selectedCars[0]) {
@@ -24,7 +26,7 @@ const CarComparison = ({ onClose }) => {
 
     const fetchCars = async () => {
         try {
-            const response = await api.get('/api/cars');
+            const response = await api.get('/api/cars/my-cars');
             setCars(response.data.data);
         } catch (error) {
             toast.error('Failed to fetch cars');

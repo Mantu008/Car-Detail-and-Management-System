@@ -62,12 +62,12 @@ const EditCar = () => {
         return (
             <div className="min-h-screen flex items-center justify-center">
                 <div className="text-center">
-                    <h2 className="text-2xl font-bold text-gray-800 mb-4">Car not found</h2>
+                    <h2 className="text-2xl font-bold text-gray-800 mb-4">Vehicle not found</h2>
                     <button
                         onClick={() => navigate('/my-cars')}
                         className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
                     >
-                        Back to My Cars
+                        Back to My Vehicles
                     </button>
                 </div>
             </div>

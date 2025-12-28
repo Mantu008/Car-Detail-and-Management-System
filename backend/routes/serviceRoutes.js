@@ -10,7 +10,7 @@ const {
 const { protect, adminOnly, userOrAdmin } = require('../middleware/authMiddleware');
 
 // Admin only routes (must come before parameterized routes)
-router.get('/', protect, adminOnly, getAllServices);
+router.get('/', protect, getAllServices);
 
 // Protected routes
 router.post('/', protect, userOrAdmin, createService);

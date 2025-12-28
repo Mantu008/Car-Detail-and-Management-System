@@ -50,9 +50,9 @@ const MyCars = () => {
         <div className="min-h-screen bg-gray-50 py-8">
             <div className="max-w-7xl mx-auto px-4">
                 <div className="mb-8">
-                    <h1 className="text-3xl font-bold text-gray-800 mb-4">My Cars</h1>
+                    <h1 className="text-3xl font-bold text-gray-800 mb-4">My Vehicles</h1>
                     <p className="text-gray-600">
-                        Manage your car inventory and service records.
+                        Manage your vehicle inventory and service records.
                     </p>
                 </div>
 
@@ -63,7 +63,7 @@ const MyCars = () => {
                         className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors inline-flex items-center"
                     >
                         <span className="mr-2">+</span>
-                        Add New Car
+                        Add New Vehicle
                     </Link>
                 </div>
 
@@ -71,16 +71,16 @@ const MyCars = () => {
                 {cars.length === 0 ? (
                     <div className="text-center py-12 bg-white rounded-lg shadow-md">
                         <div className="text-6xl mb-4">🚗</div>
-                        <h3 className="text-xl font-semibold text-gray-800 mb-2">No cars found</h3>
+                        <h3 className="text-xl font-semibold text-gray-800 mb-2">No vehicles found</h3>
                         <p className="text-gray-600 mb-6">
-                            You haven't added any cars yet. Start by adding your first car!
+                            You haven't added any vehicles yet. Start by adding your first vehicle!
                         </p>
                         <Link
                             to="/add-car"
                             className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors inline-flex items-center"
                         >
                             <span className="mr-2">+</span>
-                            Add Your First Car
+                            Add Your First Vehicle
                         </Link>
                     </div>
                 ) : (
@@ -92,14 +92,14 @@ const MyCars = () => {
                                     <Link
                                         to={`/edit-car/${car._id}`}
                                         className="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-lg transition-colors"
-                                        title="Edit Car"
+                                        title="Edit Vehicle"
                                     >
                                         ✏️
                                     </Link>
                                     <button
                                         onClick={() => handleDeleteCar(car._id)}
                                         className="bg-red-600 hover:bg-red-700 text-white p-2 rounded-lg transition-colors"
-                                        title="Delete Car"
+                                        title="Delete Vehicle"
                                     >
                                         🗑️
                                     </button>
@@ -112,11 +112,11 @@ const MyCars = () => {
                 {/* Stats */}
                 {cars.length > 0 && (
                     <div className="mt-8 bg-white rounded-lg shadow-md p-6">
-                        <h3 className="text-lg font-semibold text-gray-800 mb-4">Your Car Statistics</h3>
+                        <h3 className="text-lg font-semibold text-gray-800 mb-4">Your Vehicle Statistics</h3>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div className="text-center p-4 bg-blue-50 rounded-lg">
                                 <div className="text-2xl font-bold text-blue-600">{cars.length}</div>
-                                <div className="text-sm text-gray-600">Total Cars</div>
+                                <div className="text-sm text-gray-600">Total Vehicles</div>
                             </div>
                             <div className="text-center p-4 bg-green-50 rounded-lg">
                                 <div className="text-2xl font-bold text-green-600">

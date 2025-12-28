@@ -2,6 +2,7 @@ const Car = require('../models/Car');
 const path = require('path');
 const fs = require('fs');
 const { uploadToCloud } = require('../services/cloudStorage');
+const { logAction } = require('../utils/auditLogger');
 
 // Helper function to handle file uploads
 const handleFileUpload = async (req) => {
@@ -36,7 +37,13 @@ const handleFileUpload = async (req) => {
 // @access  Public
 const getCars = async (req, res) => {
   try {
-    const cars = await Car.find({})
+    // If user is admin, return all cars. Otherwise, return only their own.
+    let query = {};
+    if (req.user.role !== 'admin') {
+      query = { owner: req.user._id };
+    }
+
+    const cars = await Car.find(query)
       .populate('owner', 'name email')
       .populate('services')
       .sort({ createdAt: -1 });
@@ -110,6 +117,15 @@ const createCar = async (req, res) => {
       message: 'Car created successfully',
       data: populatedCar
     });
+
+    // Log action
+    await logAction({
+      action: 'CREATE_VEHICLE',
+      userId: req.user._id,
+      performedBy: 'user',
+      req,
+      meta: { carId: car._id, brand: car.brand, model: car.model }
+    });
   } catch (error) {
     console.error('Create car error:', error.message);
     res.status(500).json({
@@ -161,6 +177,15 @@ const updateCar = async (req, res) => {
       message: 'Car updated successfully',
       data: updatedCar
     });
+
+    // Log action
+    await logAction({
+      action: 'UPDATE_VEHICLE',
+      userId: req.user._id,
+      performedBy: req.user.role === 'admin' ? 'admin' : 'user',
+      req,
+      meta: { carId: updatedCar._id, updates: Object.keys(updateData) }
+    });
   } catch (error) {
     console.error('Update car error:', error.message);
     console.error('Full error:', error);
@@ -199,6 +224,15 @@ const deleteCar = async (req, res) => {
     res.json({
       success: true,
       message: 'Car deleted successfully'
+    });
+
+    // Log action
+    await logAction({
+      action: 'DELETE_VEHICLE',
+      userId: req.user._id,
+      performedBy: req.user.role === 'admin' ? 'admin' : 'user',
+      req,
+      meta: { carId: req.params.id, brand: car.brand, model: car.model }
     });
   } catch (error) {
     console.error('Delete car error:', error.message);
