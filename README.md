@@ -1026,9 +1026,14 @@ const api = axios.create({
 
 // Add auth token to all requests
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+  const tokenData = sessionStorage.getItem('auth_token');
+  if (tokenData) {
+    try {
+      const { token } = JSON.parse(tokenData);
+      config.headers.Authorization = `Bearer ${token}`;
+    } catch (e) {
+      console.error('Error parsing token');
+    }
   }
   return config;
 });
