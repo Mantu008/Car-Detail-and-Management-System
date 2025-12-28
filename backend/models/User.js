@@ -29,6 +29,18 @@ const userSchema = new mongoose.Schema({
     type: String,
     enum: ['active', 'blocked'],
     default: 'active'
+  },
+  twoFactorSecret: {
+    type: String,
+    default: ''
+  },
+  isTwoFactorEnabled: {
+    type: Boolean,
+    default: false
+  },
+  twoFactorBackupCodes: {
+    type: [String],
+    default: []
   }
 }, {
   timestamps: true

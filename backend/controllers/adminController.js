@@ -3,6 +3,7 @@ const Car = require('../models/Car');
 const Service = require('../models/Service');
 const AuditLog = require('../models/AuditLog');
 const { logAction } = require('../utils/auditLogger');
+const { sendNotificationToUser } = require('../config/socket');
 
 // @desc    Get Admin Dashboard Stats
 // @route   GET /api/admin/dashboard
@@ -109,6 +110,13 @@ const updateUserStatus = async (req, res) => {
     user.status = status;
     await user.save();
 
+    // Send real-time notification to user
+    sendNotificationToUser(user._id, {
+      title: 'Account Status Updated',
+      message: `Your account has been ${status === 'blocked' ? 'blocked' : 'unblocked'} by an administrator.`,
+      type: status === 'blocked' ? 'error' : 'success'
+    });
+
     // Log action
     await logAction({
       action: status === 'blocked' ? 'BLOCK_USER' : 'UNBLOCK_USER',
@@ -154,6 +162,14 @@ const updateVehicleStatus = async (req, res) => {
     const oldStatus = car.status;
     car.status = status;
     await car.save();
+
+    // Send real-time notification to user
+    sendNotificationToUser(car.owner, {
+      title: 'Vehicle Status Updated',
+      message: `Your vehicle ${car.brand} ${car.model} has been marked as ${status}.`,
+      type: status === 'suspicious' ? 'warning' : 'info',
+      carId: car._id
+    });
 
     // Log action
     await logAction({

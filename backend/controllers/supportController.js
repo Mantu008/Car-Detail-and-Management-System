@@ -1,5 +1,6 @@
 const SupportTicket = require('../models/SupportTicket');
 const { logAction } = require('../utils/auditLogger');
+const { sendNotificationToUser } = require('../config/socket');
 
 // @desc    Create Support Ticket
 // @route   POST /api/support
@@ -63,6 +64,14 @@ const updateTicket = async (req, res) => {
     }
 
     await ticket.save();
+
+    // Send real-time notification to user
+    sendNotificationToUser(ticket.user, {
+      title: 'Support Ticket Updated',
+      message: `Your ticket "${ticket.subject}" has been updated to ${ticket.status}.`,
+      type: 'info',
+      ticketId: ticket._id
+    });
 
     // Log action
     await logAction({

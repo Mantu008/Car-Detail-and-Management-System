@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useCallback, useRef } from 'react';
 import api from '../config/api';
 
 const AuthContext = createContext();
@@ -90,6 +90,7 @@ const authReducer = (state, action) => {
 
 export const AuthProvider = ({ children }) => {
     const [state, dispatch] = useReducer(authReducer, initialState);
+    const hasLoadedUser = useRef(false);
 
     // Note: API configuration is now handled in the api.js config file
 
@@ -119,17 +120,20 @@ export const AuthProvider = ({ children }) => {
         sessionStorage.removeItem('tab_closing');
     }, []);
 
-    // Load user on app start
+    // Load user on app start - FIXED: Only run once on mount
     useEffect(() => {
         const loadUser = async () => {
-            if (state.token) {
+            const token = getStoredToken();
+
+            if (token && !hasLoadedUser.current) {
+                hasLoadedUser.current = true;
                 try {
                     const response = await api.get('/api/users/profile');
                     dispatch({
                         type: 'LOGIN_SUCCESS',
                         payload: {
                             user: response.data.data,
-                            token: state.token
+                            token: token
                         }
                     });
                 } catch (error) {
@@ -139,13 +143,13 @@ export const AuthProvider = ({ children }) => {
                         payload: 'Session expired. Please login again.'
                     });
                 }
-            } else {
+            } else if (!token) {
                 dispatch({ type: 'NO_TOKEN' });
             }
         };
 
         loadUser();
-    }, [state.token]);
+    }, []); // Empty dependency array - only run once on mount
 
     const login = async (email, password) => {
         dispatch({ type: 'LOGIN_START' });

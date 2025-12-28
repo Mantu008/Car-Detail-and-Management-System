@@ -1,15 +1,11 @@
-// Socket.io configuration - temporarily disabled until socket.io is installed
-// const socketIO = require('socket.io');
+const socketIO = require('socket.io');
 
 let io;
 
 const initializeSocket = (server) => {
-    // TODO: Enable when socket.io is installed
-    console.log("Socket.io initialization skipped - package not installed");
-    /*
     io = socketIO(server, {
         cors: {
-            origin: process.env.CLIENT_URL || "http://localhost:3000",
+            origin: "*", // Match the express CORS config
             methods: ["GET", "POST"]
         }
     });
@@ -22,33 +18,45 @@ const initializeSocket = (server) => {
             console.log(`User ${userId} joined their room`);
         });
 
+        socket.on('joinAdminRoom', () => {
+            socket.join('admin_room');
+            console.log('An admin joined the admin room');
+        });
+
         socket.on('disconnect', () => {
             console.log('User disconnected:', socket.id);
         });
     });
-    */
 
     return io;
 };
 
 const getIO = () => {
-    // TODO: Enable when socket.io is installed
-    throw new Error("Socket.io not initialized - package not installed");
+    if (!io) {
+        throw new Error("Socket.io not initialized");
+    }
+    return io;
 };
 
 const broadcastAnnouncement = (announcement) => {
-    // TODO: Enable when socket.io is installed
-    console.log(
-        "Announcement broadcast skipped - socket.io not installed:",
-        announcement.title
-    );
+    if (io) {
+        io.emit('newAnnouncement', announcement);
+        console.log("Announcement broadcasted:", announcement.title);
+    }
 };
 
 const sendNotificationToUser = (userId, notification) => {
-    // TODO: Enable when socket.io is installed
-    console.log(
-        `Notification to user ${userId} skipped - socket.io not installed`
-    );
+    if (io) {
+        io.to(`user_${userId}`).emit('notification', notification);
+        console.log(`Notification sent to user ${userId}`);
+    }
+};
+
+const sendNotificationToAdmins = (notification) => {
+    if (io) {
+        io.to('admin_room').emit('notification', notification);
+        console.log('Notification sent to all admins');
+    }
 };
 
 module.exports = {
@@ -56,4 +64,5 @@ module.exports = {
     getIO,
     broadcastAnnouncement,
     sendNotificationToUser,
+    sendNotificationToAdmins,
 };

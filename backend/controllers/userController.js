@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
+const { logAction } = require('../utils/auditLogger');
 
 // Generate JWT Token
 const generateToken = (id) => {
@@ -43,6 +44,15 @@ const registerUser = async (req, res) => {
           token: generateToken(user._id)
         }
       });
+
+      // Log registration
+      await logAction({
+        action: 'USER_REGISTER',
+        userId: user._id,
+        performedBy: 'user',
+        req,
+        meta: { name: user.name, email: user.email }
+      });
     } else {
       res.status(400).json({
         success: false,
@@ -79,6 +89,15 @@ const loginUser = async (req, res) => {
           role: user.role,
           token: generateToken(user._id)
         }
+      });
+
+      // Log login
+      await logAction({
+        action: 'USER_LOGIN',
+        userId: user._id,
+        performedBy: 'user',
+        req,
+        meta: { email: user.email }
       });
     } else {
       res.status(401).json({

@@ -6,6 +6,8 @@ require('dotenv').config();
 const User = require('./models/User');
 const Car = require('./models/Car');
 const Service = require('./models/Service');
+const Announcement = require('./models/Announcement');
+const SupportTicket = require('./models/SupportTicket');
 
 // Connect to MongoDB
 const connectDB = async () => {
@@ -205,6 +207,8 @@ const seedDatabase = async () => {
     await User.deleteMany({});
     await Car.deleteMany({});
     await Service.deleteMany({});
+    await Announcement.deleteMany({});
+    await SupportTicket.deleteMany({});
 
     // Create users
     console.log('Creating users...');
@@ -250,6 +254,53 @@ const seedDatabase = async () => {
         { $push: { services: service._id } },
         { new: true }
       );
+    }
+
+    // Create announcements
+    console.log('Creating announcements...');
+    const sampleAnnouncements = [
+      {
+        title: 'Welcome to the New System!',
+        message: 'We have upgraded our vehicle management system with new features.',
+        type: 'info',
+        createdBy: users[0]._id
+      },
+      {
+        title: 'Maintenance Schedule Update',
+        message: 'Please check your vehicle service dates for the upcoming month.',
+        type: 'warning',
+        createdBy: users[0]._id
+      }
+    ];
+    for (const announcementData of sampleAnnouncements) {
+      const announcement = new Announcement(announcementData);
+      await announcement.save();
+      console.log(`Created announcement: ${announcement.title}`);
+    }
+
+    // Create support tickets
+    console.log('Creating support tickets...');
+    const sampleTickets = [
+      {
+        user: users[1]._id,
+        subject: 'Cannot upload image',
+        message: 'I am trying to upload a photo of my Camry but it fails.',
+        status: 'open',
+        priority: 'high'
+      },
+      {
+        user: users[2]._id,
+        subject: 'Service record missing',
+        message: 'My last oil change record is not showing up.',
+        status: 'resolved',
+        priority: 'medium',
+        adminResponse: 'We have updated your records. Please check again.'
+      }
+    ];
+    for (const ticketData of sampleTickets) {
+      const ticket = new SupportTicket(ticketData);
+      await ticket.save();
+      console.log(`Created support ticket: ${ticket.subject}`);
     }
 
     console.log('\n🎉 Database seeded successfully!');

@@ -3,6 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const { uploadToCloud } = require('../services/cloudStorage');
 const { logAction } = require('../utils/auditLogger');
+const { sendNotificationToAdmins } = require('../config/socket');
 
 // Helper function to handle file uploads
 const handleFileUpload = async (req) => {
@@ -116,6 +117,14 @@ const createCar = async (req, res) => {
       success: true,
       message: 'Car created successfully',
       data: populatedCar
+    });
+
+    // Notify admins about new vehicle
+    sendNotificationToAdmins({
+      title: 'New Vehicle Registered',
+      message: `${req.user.name} added a new ${car.brand} ${car.model}.`,
+      type: 'info',
+      carId: car._id
     });
 
     // Log action

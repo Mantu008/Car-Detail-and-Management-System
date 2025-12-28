@@ -1,4 +1,5 @@
 const express = require("express");
+const http = require("http");
 const cors = require("cors");
 const dotenv = require("dotenv");
 const path = require("path");
@@ -12,6 +13,10 @@ dotenv.config();
 connectDB();
 
 const app = express();
+const server = http.createServer(app);
+
+// Initialize Socket.io
+initializeSocket(server);
 
 // Body parser
 app.use(express.json());
@@ -27,34 +32,6 @@ app.use(
     })
 );
 
-// app.use(cors({
-//   origin: function (origin, callback) {
-//     // Allow requests with no origin (like mobile apps or curl requests)
-//     if (!origin) return callback(null, true);
-
-//     const allowedOrigins = [
-//       'http://localhost:3000',
-//       'http://localhost:3001',
-//       'http://127.0.0.1:3000',
-//       'http://127.0.0.1:3001',
-//       process.env.CLIENT_URL
-//     ].filter(Boolean);
-
-//     if (allowedOrigins.indexOf(origin) !== -1) {
-//       callback(null, true);
-//     } else {
-//       console.log('CORS blocked origin:', origin);
-//       callback(new Error('Not allowed by CORS'));
-//     }
-//   },
-//   credentials: true,
-//   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-//   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
-//   exposedHeaders: ['Content-Length', 'X-Foo', 'X-Bar'],
-//   preflightContinue: false,
-//   optionsSuccessStatus: 200
-// }));
-
 // Serve static files from uploads directory (only for local development)
 if (process.env.VERCEL !== "1") {
     app.use("/uploads", express.static(path.join(__dirname, "uploads")));
@@ -67,6 +44,7 @@ app.use("/api/services", require("./routes/serviceRoutes"));
 app.use("/api/admin", require("./routes/adminRoutes"));
 app.use("/api/support", require("./routes/supportRoutes"));
 app.use("/api/announcements", require("./routes/announcementRoutes"));
+app.use("/api/auth/2fa", require("./routes/authRoutes"));
 
 app.get("/", (req, res) => {
     res.send("Car Management System API is running");
@@ -100,10 +78,10 @@ app.use("*", (req, res) => {
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
+server.listen(PORT, () => {
     console.log(
         `🚗 Car Management System Server running in ${process.env.NODE_ENV} mode on port ${PORT}`
     );
 });
 
-module.exports = app;
+module.exports = { app, server };

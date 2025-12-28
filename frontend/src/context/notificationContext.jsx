@@ -14,11 +14,16 @@ export const NotificationProvider = ({ children }) => {
     useEffect(() => {
         if (isAuthenticated && user) {
             // Initialize socket connection
-            const newSocket = io(process.env.REACT_APP_SERVER_URL || 'http://localhost:5000');
+            const newSocket = io(import.meta.env.VITE_API_URL || 'http://localhost:5000');
             setSocket(newSocket);
 
             // Join user's personal room
             newSocket.emit('joinUserRoom', user._id);
+
+            // Join admin room if user is admin
+            if (user.role === 'admin') {
+                newSocket.emit('joinAdminRoom');
+            }
 
             // Listen for new announcements
             newSocket.on('newAnnouncement', (announcement) => {
@@ -64,8 +69,11 @@ export const NotificationProvider = ({ children }) => {
     }, [isAuthenticated, user]);
 
     useEffect(() => {
-        fetchNotifications();
-    }, []);
+        // Only fetch if authenticated
+        if (isAuthenticated) {
+            fetchNotifications();
+        }
+    }, [isAuthenticated]); // Only run when authentication status changes
 
     const fetchNotifications = async () => {
         try {
