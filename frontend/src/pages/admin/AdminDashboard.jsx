@@ -152,75 +152,75 @@ const AdminDashboard = () => {
     };
 
     return (
-        <div className="space-y-8 p-2">
-            <h1 className="text-2xl font-bold text-gray-800">Dashboard Overview</h1>
+        <div className="space-y-6 sm:space-y-8">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Dashboard Overview</h1>
 
             {/* Stats Cards with Gradients */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                 <div className="bg-gradient-to-br from-blue-500 to-blue-600 p-6 rounded-2xl shadow-lg text-white transform hover:scale-105 transition-transform duration-300">
                     <div className="text-blue-100 text-sm font-medium uppercase tracking-wider">Total Users</div>
-                    <div className="mt-2 text-4xl font-bold">{stats.counts.users}</div>
+                    <div className="mt-2 text-3xl sm:text-4xl font-bold">{stats.counts.users}</div>
                     <div className="mt-1 text-blue-200 text-sm">Registered accounts</div>
                 </div>
                 <div className="bg-gradient-to-br from-purple-500 to-purple-600 p-6 rounded-2xl shadow-lg text-white transform hover:scale-105 transition-transform duration-300">
                     <div className="text-purple-100 text-sm font-medium uppercase tracking-wider">Total Vehicles</div>
-                    <div className="mt-2 text-4xl font-bold">{stats.counts.cars}</div>
+                    <div className="mt-2 text-3xl sm:text-4xl font-bold">{stats.counts.cars}</div>
                     <div className="mt-1 text-purple-200 text-sm">Managed vehicles</div>
                 </div>
-                <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 p-6 rounded-2xl shadow-lg text-white transform hover:scale-105 transition-transform duration-300">
+                <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 p-6 rounded-2xl shadow-lg text-white transform hover:scale-105 transition-transform duration-300 sm:col-span-2 lg:col-span-1">
                     <div className="text-emerald-100 text-sm font-medium uppercase tracking-wider">Total Services</div>
-                    <div className="mt-2 text-4xl font-bold">{stats.counts.services}</div>
+                    <div className="mt-2 text-3xl sm:text-4xl font-bold">{stats.counts.services}</div>
                     <div className="mt-1 text-emerald-200 text-sm">Completed services</div>
                 </div>
             </div>
 
             {/* Charts Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
                 {/* Bar Chart */}
-                <div className="bg-white p-6 rounded-2xl shadow-md border border-gray-100">
-                    <h3 className="text-lg font-bold text-gray-800 mb-6 flex items-center">
-                        <span className="bg-indigo-100 text-indigo-600 p-2 rounded-lg mr-3">📊</span>
+                <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-md border border-gray-100">
+                    <h3 className="text-base sm:text-lg font-bold text-gray-800 mb-4 sm:mb-6 flex items-center">
+                        <span className="bg-indigo-100 text-indigo-600 p-2 rounded-lg mr-3 text-lg sm:text-xl">📊</span>
                         Service Activity
                     </h3>
-                    <div className="h-72">
+                    <div className="h-64 sm:h-72">
                         <Bar data={serviceBarData} options={commonOptions} />
                     </div>
                 </div>
 
                 {/* Line Chart */}
-                <div className="bg-white p-6 rounded-2xl shadow-md border border-gray-100">
-                    <h3 className="text-lg font-bold text-gray-800 mb-6 flex items-center">
-                        <span className="bg-blue-100 text-blue-600 p-2 rounded-lg mr-3">📈</span>
+                <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-md border border-gray-100">
+                    <h3 className="text-base sm:text-lg font-bold text-gray-800 mb-4 sm:mb-6 flex items-center">
+                        <span className="bg-blue-100 text-blue-600 p-2 rounded-lg mr-3 text-lg sm:text-xl">📈</span>
                         User Growth
                     </h3>
-                    <div className="h-72">
+                    <div className="h-64 sm:h-72">
                         <Line data={monthlySignupsData} options={commonOptions} />
                     </div>
                 </div>
 
                 {/* Pie Chart */}
-                <div className="bg-white p-6 rounded-2xl shadow-md border border-gray-100">
-                    <h3 className="text-lg font-bold text-gray-800 mb-6 flex items-center">
-                        <span className="bg-orange-100 text-orange-600 p-2 rounded-lg mr-3">🍰</span>
+                <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-md border border-gray-100">
+                    <h3 className="text-base sm:text-lg font-bold text-gray-800 mb-4 sm:mb-6 flex items-center">
+                        <span className="bg-orange-100 text-orange-600 p-2 rounded-lg mr-3 text-lg sm:text-xl">🍰</span>
                         Vehicle Types
                     </h3>
-                    <div className="h-72 flex justify-center relative">
+                    <div className="h-64 sm:h-72 flex justify-center relative">
                         <Pie data={vehicleTypeData} options={commonOptions} />
                     </div>
                 </div>
 
                 {/* Doughnut Chart */}
-                <div className="bg-white p-6 rounded-2xl shadow-md border border-gray-100">
-                    <h3 className="text-lg font-bold text-gray-800 mb-6 flex items-center">
-                        <span className="bg-red-100 text-red-600 p-2 rounded-lg mr-3">🍩</span>
+                <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-md border border-gray-100">
+                    <h3 className="text-base sm:text-lg font-bold text-gray-800 mb-4 sm:mb-6 flex items-center">
+                        <span className="bg-red-100 text-red-600 p-2 rounded-lg mr-3 text-lg sm:text-xl">🍩</span>
                         User Status
                     </h3>
-                    <div className="h-72 flex justify-center relative">
+                    <div className="h-64 sm:h-72 flex justify-center relative">
                         <Doughnut data={userStatusData} options={commonOptions} />
                         {/* Center Text Overlay */}
                         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                             <div className="text-center mt-8">
-                                <div className="text-3xl font-bold text-gray-800">{stats.counts.users}</div>
+                                <div className="text-2xl sm:text-3xl font-bold text-gray-800">{stats.counts.users}</div>
                                 <div className="text-xs text-gray-500 uppercase">Total</div>
                             </div>
                         </div>

@@ -45,12 +45,7 @@ const FeaturesDashboard = () => {
         try {
             setLoading(true);
 
-            // Fetch cars with better error handling
-            console.log('Fetching cars from /api/cars/my-cars...');
             const carsResponse = await api.get('/api/cars/my-cars');
-            console.log('Cars response:', carsResponse.data);
-
-            // Handle different response structures
             let carsData = [];
             if (carsResponse.data && Array.isArray(carsResponse.data)) {
                 carsData = carsResponse.data;
@@ -61,17 +56,10 @@ const FeaturesDashboard = () => {
             }
 
             setCars(carsData);
-            console.log('Fetched cars:', carsData.length, carsData);
 
-            // Fetch all services with better error handling
-            console.log('Fetching services from /api/services...');
             let servicesData = [];
-
             try {
                 const servicesResponse = await api.get('/api/services');
-                console.log('Services response:', servicesResponse.data);
-
-                // Handle different response structures
                 if (servicesResponse.data && Array.isArray(servicesResponse.data)) {
                     servicesData = servicesResponse.data;
                 } else if (servicesResponse.data && servicesResponse.data.data && Array.isArray(servicesResponse.data.data)) {
@@ -80,12 +68,9 @@ const FeaturesDashboard = () => {
                     servicesData = servicesResponse.data.services;
                 }
             } catch (servicesError) {
-                console.log('Services API failed (this is normal for non-admin users):', servicesError.message);
-                // Try to fetch services from individual cars as fallback
                 if (carsData.length > 0) {
-                    console.log('Attempting to fetch services from individual cars...');
                     const allServices = [];
-                    for (const car of carsData.slice(0, 5)) { // Limit to first 5 cars to avoid too many requests
+                    for (const car of carsData.slice(0, 5)) {
                         try {
                             const carServicesResponse = await api.get(`/api/services/${car._id}`);
                             if (carServicesResponse.data && Array.isArray(carServicesResponse.data)) {
@@ -94,24 +79,16 @@ const FeaturesDashboard = () => {
                                 allServices.push(...carServicesResponse.data.data);
                             }
                         } catch (carServiceError) {
-                            console.log(`Failed to fetch services for car ${car._id}:`, carServiceError.message);
+                            // Silent fail
                         }
                     }
                     servicesData = allServices;
-                    console.log('Fetched services from individual cars:', servicesData.length);
-                } else {
-                    servicesData = [];
                 }
             }
 
             setServices(servicesData);
-            console.log('Fetched services:', servicesData.length, servicesData);
-
         } catch (error) {
-            console.error('Error fetching data:', error);
-            console.error('Error details:', error.response?.data);
             toast.error(`Failed to load data: ${error.response?.data?.message || error.message}`);
-            // Set empty arrays as fallback
             setCars([]);
             setServices([]);
         } finally {
@@ -188,42 +165,39 @@ const FeaturesDashboard = () => {
     if (loading) {
         return (
             <div className="min-h-screen flex items-center justify-center">
-                <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+                <div className="animate-spin rounded-full h-16 w-16 sm:h-20 sm:w-20 border-4 border-blue-600 border-t-transparent"></div>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 py-8">
-            <div className="max-w-7xl mx-auto px-4">
-                <div className="mb-8">
-                    <h1 className="text-4xl font-bold text-gray-800 mb-4">Advanced Features</h1>
-                    <p className="text-lg text-gray-600">
+        <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white py-6 sm:py-8">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="mb-6 sm:mb-8">
+                    <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-800 mb-3 sm:mb-4">Advanced Features</h1>
+                    <p className="text-base sm:text-lg text-gray-600">
                         Explore powerful tools to manage and analyze your vehicle data
                     </p>
-                    <div className="mt-4 flex items-center justify-between">
+                    <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                         <div className="text-sm text-gray-500">
                             Data loaded: {cars.length} vehicles, {services.length} services
                         </div>
-                        <div className="flex space-x-2">
-                            <button
-                                onClick={fetchData}
-                                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-                            >
-                                🔄 Refresh Data
-                            </button>
-
-                        </div>
+                        <button
+                            onClick={fetchData}
+                            className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-2.5 rounded-xl text-sm font-semibold shadow-md hover:shadow-lg transition-all duration-200 touch-target"
+                        >
+                            🔄 Refresh Data
+                        </button>
                     </div>
 
                     {/* Vehicle Selection for Tools */}
-                    <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 mt-6">
-                        <label htmlFor="vehicle-select" className="block text-sm font-medium text-gray-700 mb-2">
+                    <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-lg border border-gray-100 mt-6">
+                        <label htmlFor="vehicle-select" className="block text-sm font-semibold text-gray-700 mb-2">
                             Select Vehicle for Analysis Tools
                         </label>
                         <select
                             id="vehicle-select"
-                            className="w-full md:w-1/3 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            className="w-full px-4 py-2.5 sm:py-2 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all touch-target"
                             value={selectedCar?._id || ''}
                             onChange={(e) => {
                                 const car = cars.find(c => c._id === e.target.value);
@@ -237,99 +211,87 @@ const FeaturesDashboard = () => {
                                 </option>
                             ))}
                         </select>
-                        <p className="text-sm text-gray-500 mt-2">
+                        <p className="text-xs sm:text-sm text-gray-500 mt-2">
                             Select a vehicle to use Fuel Tracker and Cost Estimator
                         </p>
                     </div>
                 </div>
 
                 {/* Quick Stats */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                    <div className="bg-white rounded-xl shadow-lg p-6">
-                        <div className="text-3xl font-bold text-blue-600">📊</div>
-                        <div className="text-lg font-semibold text-gray-800">Reports</div>
-                        <div className="text-sm text-gray-600">PDF & Excel generation</div>
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
+                    <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6 hover:shadow-xl transition-shadow">
+                        <div className="text-2xl sm:text-3xl font-bold text-blue-600 mb-2">📊</div>
+                        <div className="text-sm sm:text-lg font-semibold text-gray-800">Reports</div>
+                        <div className="text-xs sm:text-sm text-gray-600">PDF & Excel generation</div>
                     </div>
-                    <div className="bg-white rounded-xl shadow-lg p-6">
-                        <div className="text-3xl font-bold text-green-600">⚖️</div>
-                        <div className="text-lg font-semibold text-gray-800">Comparison</div>
-                        <div className="text-sm text-gray-600">Side-by-side analysis</div>
+                    <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6 hover:shadow-xl transition-shadow">
+                        <div className="text-2xl sm:text-3xl font-bold text-green-600 mb-2">⚖️</div>
+                        <div className="text-sm sm:text-lg font-semibold text-gray-800">Comparison</div>
+                        <div className="text-xs sm:text-sm text-gray-600">Side-by-side analysis</div>
                     </div>
-                    <div className="bg-white rounded-xl shadow-lg p-6">
-                        <div className="text-3xl font-bold text-yellow-600">⛽</div>
-                        <div className="text-lg font-semibold text-gray-800">Fuel Tracking</div>
-                        <div className="text-sm text-gray-600">Efficiency monitoring</div>
+                    <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6 hover:shadow-xl transition-shadow">
+                        <div className="text-2xl sm:text-3xl font-bold text-yellow-600 mb-2">⛽</div>
+                        <div className="text-sm sm:text-lg font-semibold text-gray-800">Fuel Tracking</div>
+                        <div className="text-xs sm:text-sm text-gray-600">Efficiency monitoring</div>
                     </div>
-                    <div className="bg-white rounded-xl shadow-lg p-6">
-                        <div className="text-3xl font-bold text-purple-600">💰</div>
-                        <div className="text-lg font-semibold text-gray-800">Cost Estimation</div>
-                        <div className="text-sm text-gray-600">Predictive analytics</div>
+                    <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6 hover:shadow-xl transition-shadow">
+                        <div className="text-2xl sm:text-3xl font-bold text-purple-600 mb-2">💰</div>
+                        <div className="text-sm sm:text-lg font-semibold text-gray-800">Cost Estimation</div>
+                        <div className="text-xs sm:text-sm text-gray-600">Predictive analytics</div>
                     </div>
                 </div>
 
                 {/* Debug Panel - Only show if no data */}
                 {cars.length === 0 && (
-                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 mb-8">
-                        <h3 className="text-lg font-semibold text-yellow-800 mb-4">🔍 Debug Information</h3>
-                        <div className="space-y-2 text-sm">
-                            <p><strong>API Endpoints:</strong></p>
-                            <ul className="ml-4 space-y-1">
-                                <li>• Cars: <code>/api/cars</code></li>
-                                <li>• Services: <code>/api/services</code></li>
-                            </ul>
-                            <p><strong>Troubleshooting Steps:</strong></p>
-                            <ul className="ml-4 space-y-1">
-                                <li>1. Check if backend server is running (usually on port 5000)</li>
-                                <li>2. Verify you're logged in to the application</li>
-                                <li>3. Check browser console for detailed error messages</li>
-                                <li>4. Try the "Test API" button to verify connectivity</li>
-                                <li>5. Make sure you have vehicles in your system</li>
-                            </ul>
-                            <p className="text-xs text-gray-600 mt-2">
-                                Open browser console (F12) to see detailed error messages.
+                    <div className="bg-yellow-50 border-2 border-yellow-200 rounded-2xl p-4 sm:p-6 mb-6 sm:mb-8">
+                        <h3 className="text-base sm:text-lg font-semibold text-yellow-800 mb-3 sm:mb-4">🔍 Debug Information</h3>
+                        <div className="space-y-2 text-xs sm:text-sm text-gray-700">
+                            <p><strong>No vehicles found.</strong> Please add some vehicles to use the advanced features.</p>
+                            <p className="text-gray-600 mt-2">
+                                Open browser console (F12) to see detailed error messages if you're experiencing issues.
                             </p>
                         </div>
                     </div>
                 )}
 
                 {/* Features Grid */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
                     {features.map((feature) => (
-                        <div key={feature.id} className="bg-white rounded-xl shadow-lg p-8">
-                            <div className="flex items-center mb-6">
-                                <div className={`w-16 h-16 ${feature.color} rounded-lg flex items-center justify-center text-white text-2xl mr-4`}>
+                        <div key={feature.id} className="bg-white rounded-2xl shadow-lg p-6 sm:p-8 hover:shadow-xl transition-all">
+                            <div className="flex flex-col sm:flex-row sm:items-center mb-6 gap-4">
+                                <div className={`w-14 h-14 sm:w-16 sm:h-16 ${feature.color} rounded-2xl flex items-center justify-center text-white text-2xl sm:text-3xl shadow-md flex-shrink-0`}>
                                     {feature.icon}
                                 </div>
-                                <div>
-                                    <h3 className="text-2xl font-bold text-gray-800">{feature.title}</h3>
-                                    <p className="text-gray-600">{feature.description}</p>
+                                <div className="flex-1">
+                                    <h3 className="text-xl sm:text-2xl font-bold text-gray-800 mb-1">{feature.title}</h3>
+                                    <p className="text-sm sm:text-base text-gray-600">{feature.description}</p>
                                 </div>
                             </div>
 
                             {feature.features ? (
                                 <div className="space-y-4">
                                     {feature.features.map((subFeature, index) => (
-                                        <div key={index} className="border border-gray-200 rounded-lg p-4">
-                                            <div className="flex justify-between items-center mb-2">
+                                        <div key={index} className="border-2 border-gray-100 rounded-xl p-4 hover:border-blue-200 transition-colors">
+                                            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-2">
                                                 <h4 className="font-semibold text-gray-800">{subFeature.name}</h4>
-                                                <div className="flex space-x-2">
+                                                <div className="flex gap-2">
                                                     <button
                                                         onClick={subFeature.action}
-                                                        className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm transition-colors"
+                                                        className="flex-1 sm:flex-none bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all shadow-sm hover:shadow-md touch-target"
                                                     >
                                                         PDF
                                                     </button>
                                                     <button
                                                         onClick={subFeature.excelAction}
-                                                        className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm transition-colors"
+                                                        className="flex-1 sm:flex-none bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all shadow-sm hover:shadow-md touch-target"
                                                     >
                                                         Excel
                                                     </button>
                                                 </div>
                                             </div>
-                                            <p className="text-sm text-gray-600">{subFeature.description}</p>
+                                            <p className="text-xs sm:text-sm text-gray-600">{subFeature.description}</p>
                                             {cars.length === 0 && (
-                                                <p className="text-xs text-yellow-600 mt-1">
+                                                <p className="text-xs text-yellow-600 mt-2">
                                                     ⚠️ No vehicles found. Add some vehicles first to generate meaningful reports.
                                                 </p>
                                             )}
@@ -339,7 +301,7 @@ const FeaturesDashboard = () => {
                             ) : (
                                 <button
                                     onClick={feature.action}
-                                    className="w-full bg-gray-600 hover:bg-gray-700 text-white py-3 px-6 rounded-lg font-medium transition-colors"
+                                    className="w-full bg-gradient-to-r from-gray-700 to-gray-800 hover:from-gray-800 hover:to-gray-900 text-white py-3 px-6 rounded-xl font-semibold shadow-md hover:shadow-lg transition-all duration-200 touch-target"
                                 >
                                     Open {feature.title}
                                 </button>
@@ -350,40 +312,40 @@ const FeaturesDashboard = () => {
 
                 {/* Admin Features */}
                 {isAdmin && (
-                    <div className="mt-8 bg-white rounded-xl shadow-lg p-8">
-                        <h3 className="text-2xl font-bold text-gray-800 mb-6">Admin Features</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="border border-gray-200 rounded-lg p-6">
-                                <div className="flex items-center mb-4">
-                                    <div className="w-12 h-12 bg-red-500 rounded-lg flex items-center justify-center text-white text-xl mr-4">
+                    <div className="mt-6 sm:mt-8 bg-white rounded-2xl shadow-lg p-6 sm:p-8">
+                        <h3 className="text-xl sm:text-2xl font-bold text-gray-800 mb-6">Admin Features</h3>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                            <div className="border-2 border-gray-100 rounded-2xl p-4 sm:p-6 hover:border-red-200 transition-colors">
+                                <div className="flex items-center mb-4 gap-3">
+                                    <div className="w-12 h-12 bg-red-500 rounded-xl flex items-center justify-center text-white text-xl shadow-md flex-shrink-0">
                                         📝
                                     </div>
                                     <div>
-                                        <h4 className="text-lg font-semibold text-gray-800">Activity Logs</h4>
-                                        <p className="text-gray-600">Monitor user activities and system events</p>
+                                        <h4 className="text-base sm:text-lg font-semibold text-gray-800">Activity Logs</h4>
+                                        <p className="text-xs sm:text-sm text-gray-600">Monitor user activities and system events</p>
                                     </div>
                                 </div>
                                 <button
                                     onClick={() => window.location.href = '/admin/activity-logs'}
-                                    className="w-full bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg font-medium transition-colors"
+                                    className="w-full bg-red-600 hover:bg-red-700 text-white py-2.5 px-4 rounded-xl font-semibold shadow-md hover:shadow-lg transition-all touch-target"
                                 >
                                     View Activity Logs
                                 </button>
                             </div>
 
-                            <div className="border border-gray-200 rounded-lg p-6">
-                                <div className="flex items-center mb-4">
-                                    <div className="w-12 h-12 bg-indigo-500 rounded-lg flex items-center justify-center text-white text-xl mr-4">
+                            <div className="border-2 border-gray-100 rounded-2xl p-4 sm:p-6 hover:border-indigo-200 transition-colors">
+                                <div className="flex items-center mb-4 gap-3">
+                                    <div className="w-12 h-12 bg-indigo-500 rounded-xl flex items-center justify-center text-white text-xl shadow-md flex-shrink-0">
                                         🔧
                                     </div>
                                     <div>
-                                        <h4 className="text-lg font-semibold text-gray-800">System Management</h4>
-                                        <p className="text-gray-600">Manage users, settings, and system configuration</p>
+                                        <h4 className="text-base sm:text-lg font-semibold text-gray-800">System Management</h4>
+                                        <p className="text-xs sm:text-sm text-gray-600">Manage users, settings, and system configuration</p>
                                     </div>
                                 </div>
                                 <button
                                     onClick={() => window.location.href = '/admin/dashboard'}
-                                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 rounded-lg font-medium transition-colors"
+                                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 px-4 rounded-xl font-semibold shadow-md hover:shadow-lg transition-all touch-target"
                                 >
                                     Admin Dashboard
                                 </button>
@@ -413,7 +375,7 @@ const FeaturesDashboard = () => {
 
                 {showCarComparison && (
                     <CarComparison
-                        cars={cars} // Pass cars prop to avoid re-fetching
+                        cars={cars}
                         onClose={() => setShowCarComparison(false)}
                     />
                 )}
@@ -431,8 +393,6 @@ const FeaturesDashboard = () => {
                         onClose={() => setShowCostEstimator(false)}
                     />
                 )}
-
-
             </div>
         </div>
     );

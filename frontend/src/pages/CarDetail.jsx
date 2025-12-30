@@ -25,6 +25,11 @@ const CarDetail = () => {
     const { id } = useParams();
     const { isAuthenticated, user } = useAuth();
 
+    // Scroll to top when component mounts
+    useEffect(() => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, [id]);
+
     useEffect(() => {
         fetchCarDetails();
     }, [id]);
@@ -96,19 +101,19 @@ const CarDetail = () => {
     if (loading) {
         return (
             <div className="min-h-screen flex items-center justify-center">
-                <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+                <div className="animate-spin rounded-full h-16 w-16 sm:h-20 sm:w-20 border-4 border-blue-600 border-t-transparent"></div>
             </div>
         );
     }
 
     if (!car) {
         return (
-            <div className="min-h-screen flex items-center justify-center">
+            <div className="min-h-screen flex items-center justify-center px-4">
                 <div className="text-center">
-                    <h2 className="text-2xl font-bold text-gray-800 mb-4">Vehicle not found</h2>
+                    <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4">Vehicle not found</h2>
                     <Link
                         to="/cars"
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+                        className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-200 touch-target"
                     >
                         Back to Vehicles
                     </Link>
@@ -120,8 +125,8 @@ const CarDetail = () => {
     const canManageCar = isAuthenticated && (user?.role === 'admin' || car.owner?._id === user?._id);
 
     return (
-        <div className="min-h-screen bg-gray-50 py-8">
-            <div className="max-w-6xl mx-auto px-4">
+        <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white py-6 sm:py-8">
+            <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
                 {/* Car Details */}
                 <div className="bg-white rounded-xl shadow-lg p-8 mb-8">
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
