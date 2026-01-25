@@ -46,7 +46,7 @@ const CarCard = ({ car }) => {
                 </div>
                 <div className="flex justify-between">
                     <span className="text-gray-600">Price:</span>
-                    <span className="font-bold text-green-600">${car.price?.toLocaleString()}</span>
+                    <span className="font-bold text-green-600">₹{car.price?.toLocaleString('en-IN')}</span>
                 </div>
                 {car.color && (
                     <div className="flex justify-between">

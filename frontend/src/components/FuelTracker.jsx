@@ -139,13 +139,13 @@ const FuelTracker = ({ car, onClose }) => {
                     </div>
                     <div className="bg-green-50 rounded-lg p-6">
                         <div className="text-2xl font-bold text-green-600">
-                            ${totalCost.toFixed(2)}
+                            ₹{totalCost.toLocaleString('en-IN')}
                         </div>
                         <div className="text-sm text-gray-600">Total Fuel Cost</div>
                     </div>
                     <div className="bg-purple-50 rounded-lg p-6">
                         <div className="text-2xl font-bold text-purple-600">
-                            ${avgCostPerMile}
+                            ₹{avgCostPerMile}
                         </div>
                         <div className="text-sm text-gray-600">Cost per Mile</div>
                     </div>
@@ -195,7 +195,7 @@ const FuelTracker = ({ car, onClose }) => {
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Cost ($)</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Cost (₹)</label>
                                 <input
                                     type="number"
                                     step="0.01"
@@ -306,7 +306,7 @@ const FuelTracker = ({ car, onClose }) => {
                                                 {entry.fuelAmount} gal
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                ${entry.cost?.toFixed(2)}
+                                                ₹{entry.cost?.toLocaleString('en-IN')}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                                 {entry.mileage?.toLocaleString()} miles

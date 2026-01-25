@@ -157,7 +157,7 @@ const CarForm = ({ car, onSubmit, onCancel }) => {
 
                     <div>
                         <label htmlFor="price" className="block text-sm font-medium text-gray-700 mb-2">
-                            Price *
+                            Price (₹) *
                         </label>
                         <input
                             type="number"

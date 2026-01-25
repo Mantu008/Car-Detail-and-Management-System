@@ -72,7 +72,7 @@ const PDFReportGenerator = ({ cars, services, reportType, onClose }) => {
                 car.brand || 'N/A',
                 car.model || 'N/A',
                 car.year || 'N/A',
-                `$${car.price?.toLocaleString() || '0'}`,
+                `₹${car.price?.toLocaleString('en-IN') || '0'}`,
                 car.color || 'N/A',
                 car.mileage ? `${car.mileage.toLocaleString()} miles` : 'N/A',
                 car.owner?.name || 'N/A'
@@ -94,8 +94,8 @@ const PDFReportGenerator = ({ cars, services, reportType, onClose }) => {
             doc.setFontSize(12);
             doc.text('Summary:', 20, doc.lastAutoTable.finalY + 20);
             doc.text(`Total Cars: ${totalCars}`, 20, doc.lastAutoTable.finalY + 30);
-            doc.text(`Total Value: $${totalValue.toLocaleString()}`, 20, doc.lastAutoTable.finalY + 40);
-            doc.text(`Average Price: $${avgPrice.toLocaleString()}`, 20, doc.lastAutoTable.finalY + 50);
+            doc.text(`Total Value: ₹${totalValue.toLocaleString('en-IN')}`, 20, doc.lastAutoTable.finalY + 40);
+            doc.text(`Average Price: ₹${avgPrice.toLocaleString('en-IN')}`, 20, doc.lastAutoTable.finalY + 50);
 
             doc.save('all-cars-report.pdf');
             toast.success('PDF report generated successfully!');
@@ -109,7 +109,7 @@ const PDFReportGenerator = ({ cars, services, reportType, onClose }) => {
                     car.brand || 'N/A',
                     car.model || 'N/A',
                     car.year || 'N/A',
-                    `$${car.price?.toLocaleString() || '0'}`,
+                    `₹${car.price?.toLocaleString('en-IN') || '0'}`,
                     car.color || 'N/A',
                     car.mileage ? `${car.mileage.toLocaleString()} miles` : 'N/A',
                     car.owner?.name || 'N/A'
@@ -177,7 +177,7 @@ const PDFReportGenerator = ({ cars, services, reportType, onClose }) => {
                     new Date(service.date).toLocaleDateString(),
                     service.serviceType,
                     service.description,
-                    `$${service.cost?.toFixed(2)}`,
+                    `₹${service.cost?.toLocaleString('en-IN')}`,
                     service.serviceProvider || 'N/A'
                 ]);
 
@@ -196,8 +196,8 @@ const PDFReportGenerator = ({ cars, services, reportType, onClose }) => {
                 doc.setFontSize(12);
                 doc.text('Service Summary:', 20, doc.lastAutoTable.finalY + 20);
                 doc.text(`Total Services: ${carServices.length}`, 20, doc.lastAutoTable.finalY + 30);
-                doc.text(`Total Cost: $${totalCost.toFixed(2)}`, 20, doc.lastAutoTable.finalY + 40);
-                doc.text(`Average Cost: $${avgCost.toFixed(2)}`, 20, doc.lastAutoTable.finalY + 50);
+                doc.text(`Total Cost: ₹${totalCost.toLocaleString('en-IN')}`, 20, doc.lastAutoTable.finalY + 40);
+                doc.text(`Average Cost: ₹${avgCost.toLocaleString('en-IN')}`, 20, doc.lastAutoTable.finalY + 50);
             }
 
             doc.save(`${car?.brand}-${car?.model}-service-history.pdf`);
@@ -247,8 +247,8 @@ const PDFReportGenerator = ({ cars, services, reportType, onClose }) => {
             const tableData = Object.entries(monthlyData).map(([month, data]) => [
                 month,
                 data.count,
-                `$${data.totalCost.toFixed(2)}`,
-                `$${(data.totalCost / data.count).toFixed(2)}`
+                `₹${data.totalCost.toLocaleString('en-IN')}`,
+                `₹${(data.totalCost / data.count).toLocaleString('en-IN')}`
             ]);
 
             doc.autoTable({
@@ -267,8 +267,8 @@ const PDFReportGenerator = ({ cars, services, reportType, onClose }) => {
             doc.setFontSize(12);
             doc.text('Overall Summary:', 20, doc.lastAutoTable.finalY + 20);
             doc.text(`Total Services: ${totalServices}`, 20, doc.lastAutoTable.finalY + 30);
-            doc.text(`Total Cost: $${totalCost.toFixed(2)}`, 20, doc.lastAutoTable.finalY + 40);
-            doc.text(`Average Cost: $${avgCost.toFixed(2)}`, 20, doc.lastAutoTable.finalY + 50);
+            doc.text(`Total Cost: ₹${totalCost.toLocaleString('en-IN')}`, 20, doc.lastAutoTable.finalY + 40);
+            doc.text(`Average Cost: ₹${avgCost.toLocaleString('en-IN')}`, 20, doc.lastAutoTable.finalY + 50);
 
             doc.save('monthly-maintenance-summary.pdf');
             toast.success('Monthly maintenance PDF generated successfully!');

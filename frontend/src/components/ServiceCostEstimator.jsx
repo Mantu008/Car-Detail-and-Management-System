@@ -166,12 +166,12 @@ const ServiceCostEstimator = ({ car, onClose }) => {
                                 <div className="space-y-3">
                                     <div className="flex justify-between">
                                         <span className="text-gray-600">Average Cost:</span>
-                                        <span className="font-semibold">${estimate.average.toFixed(2)}</span>
+                                        <span className="font-semibold">₹{estimate.average.toLocaleString('en-IN')}</span>
                                     </div>
                                     <div className="flex justify-between">
                                         <span className="text-gray-600">Range:</span>
                                         <span className="font-semibold">
-                                            ${estimate.minimum.toFixed(2)} - ${estimate.maximum.toFixed(2)}
+                                            ₹{estimate.minimum.toLocaleString('en-IN')} - ₹{estimate.maximum.toLocaleString('en-IN')}
                                         </span>
                                     </div>
                                     <div className="flex justify-between">
@@ -221,7 +221,7 @@ const ServiceCostEstimator = ({ car, onClose }) => {
                             </select>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Your Estimate ($)</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Your Estimate (₹)</label>
                             <input
                                 type="number"
                                 step="0.01"
@@ -239,13 +239,13 @@ const ServiceCostEstimator = ({ car, onClose }) => {
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div className="text-center">
                                     <div className="text-2xl font-bold text-gray-800">
-                                        ${customEstimateResult.customCost.toFixed(2)}
+                                        ₹{customEstimateResult.customCost.toLocaleString('en-IN')}
                                     </div>
                                     <div className="text-sm text-gray-600">Your Estimate</div>
                                 </div>
                                 <div className="text-center">
                                     <div className="text-2xl font-bold text-blue-600">
-                                        ${customEstimateResult.averageCost.toFixed(2)}
+                                        ₹{customEstimateResult.averageCost.toLocaleString('en-IN')}
                                     </div>
                                     <div className="text-sm text-gray-600">Historical Average</div>
                                 </div>

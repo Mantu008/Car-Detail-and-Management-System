@@ -164,7 +164,7 @@ const CarDetail = () => {
                                     <div>
                                         <label className="text-sm font-medium text-gray-600">Price</label>
                                         <p className="text-lg font-semibold text-green-600">
-                                            ${car.price?.toLocaleString()}
+                                            ₹{car.price?.toLocaleString('en-IN')}
                                         </p>
                                     </div>
                                     {car.color && (
@@ -271,17 +271,16 @@ const CarDetail = () => {
 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Cost
+                                        Cost (₹)
                                     </label>
                                     <input
                                         type="number"
-                                        step="0.01"
+                                        name="cost"
                                         min="0"
                                         required
                                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                         value={serviceForm.cost}
                                         onChange={(e) => setServiceForm({ ...serviceForm, cost: e.target.value })}
-                                        placeholder="0.00"
                                     />
                                 </div>
 
@@ -365,7 +364,7 @@ const CarDetail = () => {
                                             </div>
                                             <div className="text-right">
                                                 <p className="text-lg font-bold text-green-600">
-                                                    ${service.cost?.toFixed(2)}
+                                                    ₹{service.cost?.toLocaleString('en-IN')}
                                                 </p>
                                                 {canManageCar && (
                                                     <button

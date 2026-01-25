@@ -62,8 +62,8 @@ const ExcelReportGenerator = ({ cars, services, reportType, onClose }) => {
             const avgPrice = totalValue / totalCars;
 
             worksheet.getCell(`A${summaryRow + 1}`).value = `Total Cars: ${totalCars}`;
-            worksheet.getCell(`A${summaryRow + 2}`).value = `Total Value: $${totalValue.toLocaleString()}`;
-            worksheet.getCell(`A${summaryRow + 3}`).value = `Average Price: $${avgPrice.toLocaleString()}`;
+            worksheet.getCell(`A${summaryRow + 2}`).value = `Total Value: ₹${totalValue.toLocaleString('en-IN')}`;
+            worksheet.getCell(`A${summaryRow + 3}`).value = `Average Price: ₹${avgPrice.toLocaleString('en-IN')}`;
 
             // Save file
             const buffer = await workbook.xlsx.writeBuffer();
