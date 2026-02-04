@@ -1120,7 +1120,7 @@ This project is licensed under the **MIT License** - see the LICENSE file for de
 
 ## 👥 Contributors
 
-- **Author**: Your Name
+- **Author**: Mantu Kumar Morya
 - **Project Type**: Final Year Major Project
 - **Academic Year**: 2024-2025
 
