@@ -22,7 +22,7 @@ export const buildReport = (type, { cars = [], services = [], carId }) => {
       title: 'Vehicle inventory',
       filename: `vehicles-${stamp()}`,
       columns: ['Vehicle', 'Type', 'Year', 'Colour', 'Odometer (km)', 'Services', 'Price'],
-      rows: cars.map((c) => [vehicleName(c), c.type || 'Car', c.year, c.color || '-', c.mileage ?? '-', c.services?.length || 0, c.price || 0]),
+      rows: cars.map((c) => [vehicleName(c), c.type || 'Car', c.year, c.color || '-', c.mileage != null ? Number(c.mileage).toLocaleString('en-IN') : '-', c.services?.length || 0, c.price || 0]),
       money: [6],
       summary: [
         ['Vehicles', cars.length],
