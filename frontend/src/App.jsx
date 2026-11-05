@@ -42,7 +42,7 @@ const user = (element) => <ProtectedRoute>{element}</ProtectedRoute>;
 
 function App() {
   return (
-    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+    <BrowserRouter future={{ v7_relativeSplatPath: true }}>
       <AuthProvider>
         <NotificationProvider>
           <ConfirmProvider>
