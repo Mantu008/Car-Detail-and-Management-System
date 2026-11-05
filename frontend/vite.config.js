@@ -1,29 +1,29 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
-  base: './', // ✅ Add this line
+  // Absolute base so deep links like /cars/:id (e.g. opened from a QR code) load their assets.
+  base: '/',
   server: {
     port: 3000,
     proxy: {
-      '/api': {
-        target: 'http://localhost:5000',
-        changeOrigin: true,
-        secure: false,
-      },
-      '/uploads': {
-        target: 'http://localhost:5000',
-        changeOrigin: true,
-        secure: false,
-      },
+      '/api': { target: 'http://localhost:5000', changeOrigin: true },
+      '/uploads': { target: 'http://localhost:5000', changeOrigin: true },
+      '/socket.io': { target: 'http://localhost:5000', ws: true },
     },
   },
   build: {
     outDir: 'dist',
-    sourcemap: true,
+    // exceljs / jspdf are only loaded on demand when exporting a report.
+    chunkSizeWarningLimit: 1000,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          react: ['react', 'react-dom', 'react-router-dom'],
+          charts: ['chart.js', 'react-chartjs-2'],
+        },
+      },
+    },
   },
-  define: {
-    'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'production'),
-  },
-})
+});

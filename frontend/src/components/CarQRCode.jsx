@@ -1,179 +1,86 @@
-import React, { useState } from 'react';
+import { useRef } from 'react';
 import QRCode from 'react-qr-code';
 import { toast } from 'react-toastify';
+import { Button, Modal } from './ui';
+import { vehicleName } from '../utils/format';
 
+export const carUrl = (car) => `${window.location.origin}/cars/${car._id}`;
+
+/**
+ * The QR code holds just the vehicle's URL, so any phone camera opens
+ * the vehicle page directly (and no personal data is embedded in it).
+ */
 const CarQRCode = ({ car, onClose }) => {
-    const [showQR, setShowQR] = useState(false);
+  const wrapper = useRef(null);
+  const url = carUrl(car);
+  const fileBase = `${car.brand}-${car.model}-${car.year}`.replace(/\s+/g, '-').toLowerCase();
 
-    // Generate QR code data with vehicle information
-    const generateQRData = () => {
-        const baseUrl = window.location.origin;
-        const carUrl = `${baseUrl}/cars/${car._id}`;
-
-        const qrData = {
-            carId: car._id,
-            brand: car.brand,
-            model: car.model,
-            year: car.year,
-            price: car.price,
-            color: car.color,
-            mileage: car.mileage,
-            description: car.description,
-            carUrl: carUrl,
-            serviceHistoryUrl: `${baseUrl}/cars/${car._id}#services`,
-            generatedAt: new Date().toISOString(),
-            owner: car.owner ? {
-                name: car.owner.name,
-                email: car.owner.email
-            } : null
-        };
-
-        return JSON.stringify(qrData, null, 2);
+  const downloadPng = () => {
+    const svg = wrapper.current?.querySelector('svg');
+    if (!svg) return;
+    const size = 720;
+    const padding = 48;
+    const svgData = new XMLSerializer().serializeToString(svg);
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = size;
+      canvas.height = size + 72;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, padding, padding, size - padding * 2, size - padding * 2);
+      ctx.fillStyle = '#0f172a';
+      ctx.font = '600 28px Inter, Arial, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(`${vehicleName(car)} (${car.year})`, size / 2, size + 20);
+      const link = document.createElement('a');
+      link.download = `${fileBase}-qr.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+      toast.success('QR code downloaded');
     };
+    img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgData)}`;
+  };
 
-    const handleDownloadQR = () => {
-        try {
-            const svg = document.getElementById('car-qr-code');
-            const svgData = new XMLSerializer().serializeToString(svg);
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            const img = new Image();
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success('Link copied');
+    } catch {
+      toast.error('Could not copy the link');
+    }
+  };
 
-            img.onload = () => {
-                canvas.width = img.width;
-                canvas.height = img.height;
-                ctx.drawImage(img, 0, 0);
-
-                const pngFile = canvas.toDataURL('image/png');
-                const downloadLink = document.createElement('a');
-                downloadLink.download = `${car.brand}-${car.model}-${car.year}-QR.png`;
-                downloadLink.href = pngFile;
-                downloadLink.click();
-
-                downloadLink.click();
-
-                toast.success('QR Code downloaded successfully!');
-            };
-
-            img.src = 'data:image/svg+xml;base64,' + btoa(svgData);
-        } catch (error) {
-            toast.error('Failed to download QR code');
-            console.error('Download error:', error);
-        }
-    };
-
-    const handleDownloadData = () => {
-        try {
-            const qrData = generateQRData();
-            const blob = new Blob([qrData], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const downloadLink = document.createElement('a');
-            downloadLink.download = `${car.brand}-${car.model}-${car.year}-data.json`;
-            downloadLink.href = url;
-            downloadLink.click();
-            URL.revokeObjectURL(url);
-
-            toast.success('Vehicle data downloaded as JSON!');
-        } catch (error) {
-            toast.error('Failed to download vehicle data');
-            console.error('Download error:', error);
-        }
-    };
-
-    const handleCopyData = () => {
-        const qrData = generateQRData();
-        navigator.clipboard.writeText(qrData).then(() => {
-            toast.success('Vehicle data copied to clipboard!');
-        }).catch(() => {
-            toast.error('Failed to copy data');
-        });
-    };
-
-    return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-xl shadow-2xl p-8 max-w-md w-full mx-4">
-                <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-2xl font-bold text-gray-800">
-                        Vehicle QR Code
-                    </h2>
-                    <button
-                        onClick={onClose}
-                        className="text-gray-500 hover:text-gray-700 text-2xl"
-                    >
-                        ×
-                    </button>
-                </div>
-
-                <div className="text-center mb-6">
-                    <h3 className="text-lg font-semibold text-gray-700 mb-2">
-                        {car.brand} {car.model} ({car.year})
-                    </h3>
-                    <p className="text-sm text-gray-600">
-                        Scan this QR code to access vehicle details and service history
-                    </p>
-                </div>
-
-                <div className="flex justify-center mb-6">
-                    <div className="bg-white p-4 rounded-lg border-2 border-gray-200">
-                        <QRCode
-                            id="car-qr-code"
-                            value={generateQRData()}
-                            size={200}
-                            level="M"
-                            includeMargin={true}
-                        />
-                    </div>
-                </div>
-
-                <div className="space-y-3">
-                    <button
-                        onClick={handleDownloadQR}
-                        className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition-colors"
-                    >
-                        📥 Download QR Code (PNG)
-                    </button>
-
-                    <button
-                        onClick={handleDownloadData}
-                        className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 rounded-lg font-medium transition-colors"
-                    >
-                        📄 Download Vehicle Data (JSON)
-                    </button>
-
-                    <button
-                        onClick={handleCopyData}
-                        className="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg font-medium transition-colors"
-                    >
-                        📋 Copy Vehicle Data
-                    </button>
-
-                    <button
-                        onClick={() => setShowQR(!showQR)}
-                        className="w-full bg-gray-600 hover:bg-gray-700 text-white py-2 px-4 rounded-lg font-medium transition-colors"
-                    >
-                        {showQR ? 'Hide' : 'Show'} QR Data
-                    </button>
-                </div>
-
-                {showQR && (
-                    <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-                        <h4 className="text-sm font-semibold text-gray-700 mb-2">
-                            QR Code Data:
-                        </h4>
-                        <pre className="text-xs text-gray-600 overflow-auto max-h-32">
-                            {generateQRData()}
-                        </pre>
-                    </div>
-                )}
-
-                <div className="mt-6 text-center">
-                    <p className="text-xs text-gray-500">
-                        This QR code contains vehicle details and links to service history
-                    </p>
-                </div>
-            </div>
+  return (
+    <Modal
+      title="Vehicle QR code"
+      description={`${vehicleName(car)} · ${car.year}`}
+      onClose={onClose}
+      size="sm"
+      footer={
+        <>
+          <Button variant="secondary" icon="copy" onClick={copyLink}>
+            Copy link
+          </Button>
+          <Button icon="download" onClick={downloadPng}>
+            Download PNG
+          </Button>
+        </>
+      }
+    >
+      <div className="flex flex-col items-center text-center">
+        <div ref={wrapper} className="rounded-xl border border-slate-200 bg-white p-5">
+          <QRCode value={url} size={208} level="M" />
         </div>
-    );
+        <p className="mt-4 text-sm text-slate-600">
+          Scan with any phone camera to open this vehicle's page. Print it and keep it in the glovebox or on the
+          service book.
+        </p>
+        <p className="mt-2 w-full truncate rounded-md bg-slate-50 px-3 py-2 font-mono text-xs text-slate-500">{url}</p>
+      </div>
+    </Modal>
+  );
 };
 
 export default CarQRCode;

@@ -1,143 +1,106 @@
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { toast } from 'react-toastify';
 import api from '../../config/api';
+import useFetch from '../../hooks/useFetch';
+import { Alert, Badge, Button, EmptyState, Field, PageHeader, PageLoader, statusTone } from '../../components/ui';
+import { errorMessage, formatDateTime, timeAgo } from '../../utils/format';
+
+const emptyForm = { subject: '', priority: 'low', message: '' };
 
 const Support = () => {
-    const [tickets, setTickets] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [showForm, setShowForm] = useState(false);
-    const [formData, setFormData] = useState({
-        subject: '',
-        message: '',
-        priority: 'low'
-    });
+  const { data: tickets, loading, error, setData } = useFetch('/api/support', { initialData: [] });
+  const [form, setForm] = useState(emptyForm);
+  const [saving, setSaving] = useState(false);
+  const set = (key) => (e) => setForm({ ...form, [key]: e.target.value });
 
-    useEffect(() => {
-        fetchTickets();
-    }, []);
+  const submit = async (e) => {
+    e.preventDefault();
+    if (!form.subject.trim() || !form.message.trim()) return toast.info('Add a subject and a message');
+    setSaving(true);
+    try {
+      const res = await api.post('/api/support', { ...form, subject: form.subject.trim(), message: form.message.trim() });
+      setData((prev) => [res.data.data, ...prev]);
+      setForm(emptyForm);
+      toast.success("Ticket submitted. We'll get back to you soon.");
+    } catch (err) {
+      toast.error(errorMessage(err, 'Could not submit the ticket'));
+    } finally {
+      setSaving(false);
+    }
+    return undefined;
+  };
 
-    const fetchTickets = async () => {
-        try {
-            const response = await api.get('/api/support');
-            setTickets(response.data.data);
-        } catch (error) {
-            toast.error('Failed to fetch tickets');
-        } finally {
-            setLoading(false);
-        }
-    };
+  if (loading) return <PageLoader />;
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        try {
-            await api.post('/api/support', formData);
-            toast.success('Ticket created successfully');
-            setShowForm(false);
-            setFormData({ subject: '', message: '', priority: 'low' });
-            fetchTickets();
-        } catch (error) {
-            toast.error('Failed to create ticket');
-        }
-    };
+  return (
+    <div className="page">
+      <PageHeader title="Support" description="Report a problem or ask a question. Replies appear here and in your notifications." />
 
-    const getStatusColor = (status) => {
-        switch (status) {
-            case 'resolved': return 'bg-green-100 text-green-800';
-            case 'closed': return 'bg-gray-100 text-gray-800';
-            default: return 'bg-blue-100 text-blue-800';
-        }
-    };
+      <div className="grid gap-6 lg:grid-cols-5">
+        <form onSubmit={submit} className="card h-fit lg:col-span-2">
+          <div className="card-header">
+            <h2 className="card-title">New ticket</h2>
+          </div>
+          <div className="card-body space-y-4">
+            <Field label="Subject" htmlFor="subject" required>
+              <input id="subject" className="input" maxLength={100} placeholder="Briefly describe the issue" value={form.subject} onChange={set('subject')} />
+            </Field>
+            <Field label="Priority" htmlFor="priority">
+              <select id="priority" className="input" value={form.priority} onChange={set('priority')}>
+                <option value="low">Low — general question</option>
+                <option value="medium">Medium — something isn't working</option>
+                <option value="high">High — I can't use the app</option>
+              </select>
+            </Field>
+            <Field label="Message" htmlFor="message" required hint={`${form.message.length}/1000`}>
+              <textarea id="message" rows={6} maxLength={1000} className="input" placeholder="What happened, and what did you expect?" value={form.message} onChange={set('message')} />
+            </Field>
+            <Button type="submit" className="w-full" loading={saving} icon="send">
+              Submit ticket
+            </Button>
+          </div>
+        </form>
 
-    return (
-        <div className="container mx-auto px-4 py-8">
-            <div className="flex justify-between items-center mb-6">
-                <h1 className="text-2xl font-bold text-gray-800">Support & Help</h1>
-                <button
-                    onClick={() => setShowForm(!showForm)}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
-                >
-                    {showForm ? 'Cancel' : 'Create New Ticket'}
-                </button>
+        <section className="lg:col-span-3">
+          <h2 className="mb-3 text-sm font-semibold text-slate-700">Your tickets ({tickets.length})</h2>
+          {error && <Alert tone="red">{error}</Alert>}
+          {tickets.length === 0 ? (
+            <div className="card">
+              <EmptyState icon="lifebuoy" title="No tickets yet" description="When you contact support, your conversations show up here." />
             </div>
-
-            {showForm && (
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-8">
-                    <h2 className="text-lg font-semibold mb-4">New Support Ticket</h2>
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Subject</label>
-                            <input
-                                type="text"
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                                value={formData.subject}
-                                onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-                                required
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
-                            <select
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                                value={formData.priority}
-                                onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
-                            >
-                                <option value="low">Low</option>
-                                <option value="medium">Medium</option>
-                                <option value="high">High</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Message</label>
-                            <textarea
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                                rows="4"
-                                value={formData.message}
-                                onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                                required
-                            ></textarea>
-                        </div>
-                        <button
-                            type="submit"
-                            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-medium"
-                        >
-                            Submit Ticket
-                        </button>
-                    </form>
-                </div>
-            )}
-
-            <div className="space-y-4">
-                {tickets.length === 0 ? (
-                    <div className="text-center py-12 bg-gray-50 rounded-xl">
-                        <p className="text-gray-500">No support tickets found.</p>
+          ) : (
+            <ul className="space-y-3">
+              {tickets.map((t) => (
+                <li key={t._id} className="card p-5">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="font-medium">{t.subject}</p>
+                      <p className="text-xs text-slate-500" title={formatDateTime(t.createdAt)}>
+                        Opened {timeAgo(t.createdAt)}
+                      </p>
                     </div>
-                ) : (
-                    tickets.map((ticket) => (
-                        <div key={ticket._id} className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-                            <div className="flex justify-between items-start mb-2">
-                                <h3 className="font-semibold text-lg text-gray-900">{ticket.subject}</h3>
-                                <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(ticket.status)}`}>
-                                    {ticket.status}
-                                </span>
-                            </div>
-                            <p className="text-gray-600 mb-4">{ticket.message}</p>
-
-                            {ticket.adminResponse && (
-                                <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
-                                    <p className="text-sm font-semibold text-blue-800 mb-1">Support Response:</p>
-                                    <p className="text-blue-900">{ticket.adminResponse}</p>
-                                </div>
-                            )}
-
-                            <div className="mt-4 text-xs text-gray-400">
-                                Created: {new Date(ticket.createdAt).toLocaleDateString()}
-                            </div>
-                        </div>
-                    ))
-                )}
-            </div>
-        </div>
-    );
+                    <div className="flex gap-1.5">
+                      <Badge tone={statusTone(t.priority)}>{t.priority}</Badge>
+                      <Badge tone={statusTone(t.status)} dot>
+                        {t.status.replace('-', ' ')}
+                      </Badge>
+                    </div>
+                  </div>
+                  <p className="mt-3 whitespace-pre-line text-sm text-slate-600">{t.message}</p>
+                  {t.adminResponse && (
+                    <div className="mt-4 rounded-lg border-l-2 border-brand-500 bg-slate-50 px-4 py-3">
+                      <p className="text-xs font-medium text-slate-500">Support team replied</p>
+                      <p className="mt-1 whitespace-pre-line text-sm text-slate-800">{t.adminResponse}</p>
+                    </div>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      </div>
+    </div>
+  );
 };
 
 export default Support;

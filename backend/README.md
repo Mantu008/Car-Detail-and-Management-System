@@ -111,7 +111,11 @@ npm start
 
 - **Password Hashing**: Using bcryptjs for secure password storage
 - **JWT Tokens**: Secure authentication with JSON Web Tokens
-- **Input Validation**: Comprehensive validation for all inputs
+- **Input Validation**: Schema validation plus field whitelisting on every write (no mass assignment)
+- **Two-Factor Authentication**: TOTP with hashed, single-use backup codes; login issues a short-lived challenge token until the code is verified
+- **Rate Limiting**: Login, registration and 2FA endpoints (see below)
+- **Security Headers**: `nosniff`, `X-Frame-Options: DENY`, referrer policy; `X-Powered-By` removed
+- **Uploads**: Only JPG, PNG, WEBP and GIF up to 5 MB
 - **CORS Protection**: Configurable CORS settings
 - **Role-based Access**: Different permissions for admin and regular users
 - **Error Handling**: Secure error messages without sensitive information
@@ -137,12 +141,24 @@ The backend uses the following technologies:
 
 ## Testing
 
-You can test the API endpoints using:
+Automated tests use Node's built-in test runner and need no extra packages:
 
-- **Postman**: Import the API collection
-- **Thunder Client**: VS Code extension
-- **curl**: Command line tool
-- **Frontend Application**: Built-in React frontend
+```bash
+npm test
+```
+
+The suite starts a throwaway `mongod` (must be on your PATH, or set `MONGOD_PATH`)
+with a temporary data directory and runs the real server against it, so your
+development or Atlas database is never touched. To use an existing test database
+instead, set `MONGODB_TEST_URI`.
+
+- `tests/api.test.js` - end-to-end API tests: auth, ownership checks, mass
+  assignment, uploads, services, fuel log, admin actions, support, announcements,
+  the full two-factor flow and cascade deletes.
+- `tests/rateLimit.test.js` - verifies login and 2FA rate limits on the real routes.
+- `tests/unit.test.js` - rate limiter, backup-code hashing, field whitelisting.
+
+For manual testing, any HTTP client (Postman, Thunder Client, curl) works.
 
 ## Error Handling
 
@@ -167,4 +183,15 @@ Success responses:
 
 ## Rate Limiting
 
-Consider implementing rate limiting for production use to prevent abuse and ensure fair usage of the API.
+Sensitive endpoints are rate limited in memory (`middleware/rateLimit.js`) and
+answer `429` with a `Retry-After` header when exceeded:
+
+| Endpoint | Limit |
+| --- | --- |
+| `POST /api/users/login` | 10 per IP + email / 15 min |
+| `POST /api/users/register` | 20 per IP / hour |
+| `POST /api/auth/2fa/validate`, `/verify`, `/disable` | 5 per IP / 5 min |
+
+Counters are per process. On serverless platforms each instance keeps its own,
+so put a shared limiter (e.g. at the CDN / gateway) in front for strict limits.
+Set `DISABLE_RATE_LIMIT=1` only for automated tests.

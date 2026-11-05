@@ -1,142 +1,92 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { io } from 'socket.io-client';
-import api from '../config/api';
+import { toast } from 'react-toastify';
+import api, { API_BASE_URL, tokenStore } from '../config/api';
 import { useAuth } from './authContext';
 
-const NotificationContext = createContext();
+const NotificationContext = createContext(null);
+const READ_KEY = 'cms_read_announcements';
+
+const readAnnouncementIds = () => {
+  try {
+    return JSON.parse(localStorage.getItem(READ_KEY) || '[]');
+  } catch {
+    return [];
+  }
+};
 
 export const NotificationProvider = ({ children }) => {
-    const [unreadCount, setUnreadCount] = useState(0);
-    const [announcements, setAnnouncements] = useState([]);
-    const [socket, setSocket] = useState(null);
-    const { user, isAuthenticated } = useAuth();
+  const { user, logout } = useAuth();
+  const [notifications, setNotifications] = useState([]);
+  const [announcements, setAnnouncements] = useState([]);
+  const [readIds, setReadIds] = useState(readAnnouncementIds);
 
-    useEffect(() => {
-        if (isAuthenticated && user) {
-            // Initialize socket connection
-            const newSocket = io(import.meta.env.VITE_API_URL || 'http://localhost:5000');
-            setSocket(newSocket);
+  const refresh = useCallback(async () => {
+    const [n, a] = await Promise.allSettled([api.get('/api/notifications'), api.get('/api/announcements')]);
+    if (n.status === 'fulfilled') setNotifications(n.value.data.data || []);
+    if (a.status === 'fulfilled') setAnnouncements(a.value.data.data || []);
+  }, []);
 
-            // Join user's personal room
-            newSocket.emit('joinUserRoom', user._id);
+  useEffect(() => {
+    if (!user) {
+      setNotifications([]);
+      setAnnouncements([]);
+      return undefined;
+    }
 
-            // Join admin room if user is admin
-            if (user.role === 'admin') {
-                newSocket.emit('joinAdminRoom');
-            }
+    refresh();
 
-            // Listen for new announcements
-            newSocket.on('newAnnouncement', (announcement) => {
-                console.log('New announcement received:', announcement);
+    const socket = io(API_BASE_URL, { auth: { token: tokenStore.get() }, transports: ['websocket', 'polling'] });
 
-                // Add to announcements list
-                setAnnouncements(prev => [announcement, ...prev]);
+    socket.on('notification', (notification) => {
+      setNotifications((prev) => [notification, ...prev]);
+      toast.info(notification.title);
+    });
+    socket.on('announcement', (announcement) => {
+      setAnnouncements((prev) => [announcement, ...prev.filter((a) => a._id !== announcement._id)]);
+      toast.info(`Announcement: ${announcement.title}`);
+    });
+    socket.on('account:blocked', () => {
+      toast.error('Your account has been blocked by an administrator.');
+      logout();
+    });
 
-                // Increment unread count
-                setUnreadCount(prev => prev + 1);
+    return () => socket.disconnect();
+  }, [user?._id, refresh, logout]); // eslint-disable-line react-hooks/exhaustive-deps
 
-                // Show browser notification if supported
-                if ('Notification' in window && Notification.permission === 'granted') {
-                    new Notification(`New ${announcement.type} announcement`, {
-                        body: announcement.message,
-                        icon: '/favicon.ico'
-                    });
-                }
-            });
+  const markNotificationRead = useCallback(async (id) => {
+    setNotifications((prev) => prev.map((n) => (n._id === id ? { ...n, read: true } : n)));
+    api.put(`/api/notifications/${id}/read`).catch(() => {});
+  }, []);
 
-            // Listen for notifications
-            newSocket.on('notification', (notification) => {
-                console.log('Notification received:', notification);
-                setUnreadCount(prev => prev + 1);
+  const markAllRead = useCallback(async () => {
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    const ids = announcements.map((a) => a._id);
+    setReadIds(ids);
+    try {
+      localStorage.setItem(READ_KEY, JSON.stringify(ids));
+    } catch {
+      /* ignore */
+    }
+    api.put('/api/notifications/read-all').catch(() => {});
+  }, [announcements]);
 
-                if ('Notification' in window && Notification.permission === 'granted') {
-                    new Notification(notification.title || 'New Notification', {
-                        body: notification.message,
-                        icon: '/favicon.ico'
-                    });
-                }
-            });
+  const unreadCount = useMemo(
+    () =>
+      notifications.filter((n) => !n.read).length + announcements.filter((a) => !readIds.includes(a._id)).length,
+    [notifications, announcements, readIds]
+  );
 
-            // Request notification permission
-            if ('Notification' in window && Notification.permission === 'default') {
-                Notification.requestPermission();
-            }
+  const value = useMemo(
+    () => ({ notifications, announcements, readIds, unreadCount, refresh, markNotificationRead, markAllRead }),
+    [notifications, announcements, readIds, unreadCount, refresh, markNotificationRead, markAllRead]
+  );
 
-            return () => {
-                newSocket.close();
-            };
-        }
-    }, [isAuthenticated, user]);
-
-    useEffect(() => {
-        // Only fetch if authenticated
-        if (isAuthenticated) {
-            fetchNotifications();
-        }
-    }, [isAuthenticated]); // Only run when authentication status changes
-
-    const fetchNotifications = async () => {
-        try {
-            const response = await api.get('/api/announcements');
-            const announcementsData = response.data.data || [];
-            setAnnouncements(announcementsData);
-
-            // Get read announcements from localStorage
-            const readAnnouncements = JSON.parse(localStorage.getItem('readAnnouncements') || '[]');
-
-            // Calculate unread count
-            const unread = announcementsData.filter(announcement =>
-                !readAnnouncements.includes(announcement._id)
-            ).length;
-
-            setUnreadCount(unread);
-        } catch (error) {
-            console.error('Failed to fetch notifications:', error);
-        }
-    };
-
-    const markAsRead = (announcementId) => {
-        const readAnnouncements = JSON.parse(localStorage.getItem('readAnnouncements') || '[]');
-
-        if (!readAnnouncements.includes(announcementId)) {
-            const updatedRead = [...readAnnouncements, announcementId];
-            localStorage.setItem('readAnnouncements', JSON.stringify(updatedRead));
-
-            // Update unread count
-            const unread = announcements.filter(announcement =>
-                !updatedRead.includes(announcement._id)
-            ).length;
-
-            setUnreadCount(unread);
-        }
-    };
-
-    const markAllAsRead = () => {
-        const allIds = announcements.map(a => a._id);
-        localStorage.setItem('readAnnouncements', JSON.stringify(allIds));
-        setUnreadCount(0);
-    };
-
-    const value = {
-        unreadCount,
-        announcements,
-        socket,
-        fetchNotifications,
-        markAsRead,
-        markAllAsRead
-    };
-
-    return (
-        <NotificationContext.Provider value={value}>
-            {children}
-        </NotificationContext.Provider>
-    );
+  return <NotificationContext.Provider value={value}>{children}</NotificationContext.Provider>;
 };
 
 export const useNotifications = () => {
-    const context = useContext(NotificationContext);
-    if (!context) {
-        throw new Error('useNotifications must be used within a NotificationProvider');
-    }
-    return context;
+  const context = useContext(NotificationContext);
+  if (!context) throw new Error('useNotifications must be used within a NotificationProvider');
+  return context;
 };

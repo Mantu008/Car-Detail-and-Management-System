@@ -1,17 +1,15 @@
 const express = require('express');
-const router = express.Router();
-const {
-  setup2FA,
-  verify2FA,
-  validate2FA,
-  disable2FA
-} = require('../controllers/twoFactorController');
+const { setup2FA, verify2FA, validate2FA, disable2FA } = require('../controllers/twoFactorController');
 const { protect } = require('../middleware/authMiddleware');
+const { twoFactorLimiter } = require('../middleware/rateLimit');
 
-// 2FA routes (some are public for login flow)
-router.post('/setup', setup2FA);
-router.post('/verify', verify2FA);
-router.post('/validate', validate2FA);
-router.post('/disable', protect, disable2FA);
+const router = express.Router();
+
+// Second step of the login flow - authenticated by the temporary token in the body.
+router.post('/validate', twoFactorLimiter, validate2FA);
+
+router.post('/setup', protect, setup2FA);
+router.post('/verify', protect, twoFactorLimiter, verify2FA);
+router.post('/disable', protect, twoFactorLimiter, disable2FA);
 
 module.exports = router;

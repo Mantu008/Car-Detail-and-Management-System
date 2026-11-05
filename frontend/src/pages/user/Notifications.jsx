@@ -1,113 +1,110 @@
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useNotifications } from '../../context/notificationContext';
-import api from '../../config/api';
+import { Badge, Button, EmptyState, Icon, PageHeader, Tabs, statusTone } from '../../components/ui';
+import { formatDateTime, timeAgo } from '../../utils/format';
+
+const typeIcon = { success: 'checkCircle', warning: 'alert', error: 'xCircle', info: 'info' };
+const typeColor = {
+  success: 'bg-emerald-50 text-emerald-600',
+  warning: 'bg-amber-50 text-amber-600',
+  error: 'bg-red-50 text-red-600',
+  info: 'bg-brand-50 text-brand-600',
+};
+
+const Item = ({ item, unread, onClick }) => {
+  const body = (
+    <div className="flex gap-4 px-5 py-4">
+      <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${typeColor[item.type] || typeColor.info}`}>
+        <Icon name={typeIcon[item.type] || 'info'} />
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-start justify-between gap-3">
+          <p className={`text-sm ${unread ? 'font-semibold text-slate-900' : 'font-medium text-slate-700'}`}>{item.title}</p>
+          <span className="shrink-0 text-xs text-slate-500" title={formatDateTime(item.createdAt)}>
+            {timeAgo(item.createdAt)}
+          </span>
+        </div>
+        <p className="mt-0.5 text-sm text-slate-600">{item.message}</p>
+      </div>
+      {unread && <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-brand-600" aria-label="Unread" />}
+    </div>
+  );
+  return (
+    <li className={unread ? 'bg-brand-50/40' : ''}>
+      {item.link ? (
+        <Link to={item.link} onClick={onClick} className="block hover:bg-slate-50">
+          {body}
+        </Link>
+      ) : (
+        <div onClick={onClick}>{body}</div>
+      )}
+    </li>
+  );
+};
 
 const Notifications = () => {
-    const [announcements, setAnnouncements] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const { markAllAsRead } = useNotifications();
+  const { notifications, announcements, readIds, unreadCount, markNotificationRead, markAllRead } = useNotifications();
+  const [tab, setTab] = useState('activity');
 
-    useEffect(() => {
-        fetchAnnouncements();
-        // Mark all notifications as read when page is viewed
-        markAllAsRead();
-    }, []);
+  const unreadAnnouncements = announcements.filter((a) => !readIds.includes(a._id)).length;
 
-    const fetchAnnouncements = async () => {
-        try {
-            const response = await api.get('/api/announcements');
-            setAnnouncements(response.data.data || response.data || []);
-        } catch (error) {
-            console.error('Failed to fetch announcements');
-        } finally {
-            setLoading(false);
+  return (
+    <div className="page max-w-3xl">
+      <PageHeader
+        title="Notifications"
+        description="Updates about your account, vehicles and support tickets."
+        actions={
+          <Button variant="secondary" icon="check" onClick={markAllRead} disabled={!unreadCount}>
+            Mark all as read
+          </Button>
         }
-    };
+      />
 
-    const getTypeStyles = (type) => {
-        switch (type) {
-            case 'warning': return 'bg-yellow-50 border-yellow-300 text-yellow-900';
-            case 'error': return 'bg-red-50 border-red-300 text-red-900';
-            case 'success': return 'bg-green-50 border-green-300 text-green-900';
-            default: return 'bg-blue-50 border-blue-300 text-blue-900';
-        }
-    };
+      <div className="mb-4">
+        <Tabs
+          value={tab}
+          onChange={setTab}
+          tabs={[
+            { value: 'activity', label: 'Activity', count: notifications.filter((n) => !n.read).length || undefined },
+            { value: 'announcements', label: 'Announcements', count: unreadAnnouncements || undefined },
+          ]}
+        />
+      </div>
 
-    const getIcon = (type) => {
-        switch (type) {
-            case 'warning': return '⚠️';
-            case 'error': return '🚨';
-            case 'success': return '✅';
-            default: return '📢';
-        }
-    };
-
-    if (loading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center">
-                <div className="animate-spin rounded-full h-16 w-16 sm:h-20 sm:w-20 border-4 border-blue-600 border-t-transparent"></div>
-            </div>
-        );
-    }
-
-    return (
-        <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white py-6 sm:py-8">
-            <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="mb-6 sm:mb-8">
-                    <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-800 mb-2">
-                        🔔 Notifications & Announcements
-                    </h1>
-                    <p className="text-sm sm:text-base text-gray-600">
-                        Stay updated with the latest announcements and system notifications
-                    </p>
+      <div className="card overflow-hidden">
+        {tab === 'activity' ? (
+          notifications.length === 0 ? (
+            <EmptyState icon="bell" title="You're all caught up" description="We'll let you know when something needs your attention." />
+          ) : (
+            <ul className="divide-y divide-slate-100">
+              {notifications.map((n) => (
+                <Item key={n._id} item={n} unread={!n.read} onClick={() => !n.read && markNotificationRead(n._id)} />
+              ))}
+            </ul>
+          )
+        ) : announcements.length === 0 ? (
+          <EmptyState icon="megaphone" title="No announcements" description="System-wide news from the administrators shows up here." />
+        ) : (
+          <ul className="divide-y divide-slate-100">
+            {announcements.map((a) => (
+              <li key={a._id} className="px-5 py-4">
+                <div className="flex items-center gap-2">
+                  <Badge tone={statusTone(a.type)} dot>
+                    {a.type}
+                  </Badge>
+                  <span className="text-xs text-slate-500">{formatDateTime(a.createdAt)}</span>
+                  {!readIds.includes(a._id) && <span className="ml-auto h-2 w-2 rounded-full bg-brand-600" />}
                 </div>
-
-                <div className="space-y-4">
-                    {announcements.length === 0 ? (
-                        <div className="text-center py-16 sm:py-20 bg-white rounded-2xl shadow-lg border-2 border-gray-100">
-                            <div className="text-5xl sm:text-6xl mb-4">🔕</div>
-                            <h3 className="text-xl sm:text-2xl font-semibold text-gray-800 mb-2">No Notifications</h3>
-                            <p className="text-sm sm:text-base text-gray-600">You're all caught up! No new announcements.</p>
-                        </div>
-                    ) : (
-                        announcements.map((announcement) => (
-                            <div
-                                key={announcement._id}
-                                className={`p-4 sm:p-6 rounded-2xl border-2 shadow-md hover:shadow-lg transition-all duration-200 ${getTypeStyles(announcement.type)}`}
-                            >
-                                <div className="flex items-start gap-3 sm:gap-4">
-                                    <span className="text-2xl sm:text-3xl flex-shrink-0">{getIcon(announcement.type)}</span>
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-2">
-                                            <h3 className="font-bold text-base sm:text-lg">{announcement.title}</h3>
-                                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold uppercase ${announcement.type === 'warning' ? 'bg-yellow-200 text-yellow-800' :
-                                                    announcement.type === 'error' ? 'bg-red-200 text-red-800' :
-                                                        announcement.type === 'success' ? 'bg-green-200 text-green-800' :
-                                                            'bg-blue-200 text-blue-800'
-                                                }`}>
-                                                {announcement.type}
-                                            </span>
-                                        </div>
-                                        <p className="text-sm sm:text-base opacity-90 mb-2">{announcement.message}</p>
-                                        <div className="flex items-center gap-4 text-xs opacity-75">
-                                            <span>📅 {new Date(announcement.createdAt).toLocaleDateString()}</span>
-                                            <span>🕐 {new Date(announcement.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        ))
-                    )}
-                </div>
-
-                {announcements.length > 0 && (
-                    <div className="mt-6 text-center text-sm text-gray-600">
-                        Showing {announcements.length} notification{announcements.length !== 1 ? 's' : ''}
-                    </div>
-                )}
-            </div>
-        </div>
-    );
+                <p className="mt-2 font-medium">{a.title}</p>
+                <p className="mt-1 whitespace-pre-line text-sm text-slate-600">{a.message}</p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
 };
 
 export default Notifications;

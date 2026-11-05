@@ -1,286 +1,168 @@
 const Car = require('../models/Car');
-const path = require('path');
-const fs = require('fs');
-const { uploadToCloud } = require('../services/cloudStorage');
+const Service = require('../models/Service');
+const FuelEntry = require('../models/FuelEntry');
+const { asyncHandler, HttpError } = require('../middleware/errorMiddleware');
+const { storeImage, removeLocalImage } = require('../services/cloudStorage');
 const { logAction } = require('../utils/auditLogger');
-const { sendNotificationToAdmins } = require('../config/socket');
+const { notifyAdmins } = require('../utils/notify');
+const pick = require('../utils/pick');
 
-// Helper function to handle file uploads
-const handleFileUpload = async (req) => {
-  if (!req.file) return null;
-  
-  const isVercel = process.env.VERCEL === '1';
-  
-  if (isVercel) {
-    // For Vercel, try cloud storage first, then fallback to base64
-    try {
-      const cloudUrl = await uploadToCloud(
-        req.file.buffer,
-        req.file.mimetype,
-        req.file.originalname
-      );
-      return cloudUrl;
-    } catch (error) {
-      console.error('Cloud upload failed, using base64:', error);
-      // Fallback to base64
-      const base64 = req.file.buffer.toString('base64');
-      const mimeType = req.file.mimetype;
-      return `data:${mimeType};base64,${base64}`;
-    }
-  } else {
-    // For local development, use the file path
-    return `/uploads/cars/${req.file.filename}`;
-  }
+const EDITABLE_FIELDS = ['brand', 'model', 'year', 'price', 'color', 'mileage', 'description', 'type'];
+
+const isOwnerOrAdmin = (car, user) =>
+  !!user && (user.role === 'admin' || String(car.owner?._id || car.owner) === String(user._id));
+
+// Load a car and make sure the current user may modify it.
+const findManageableCar = async (id, user) => {
+  const car = await Car.findById(id);
+  if (!car) throw new HttpError(404, 'Vehicle not found');
+  if (!isOwnerOrAdmin(car, user)) throw new HttpError(403, 'You are not allowed to modify this vehicle');
+  return car;
 };
 
-// @desc    Get all cars
+// @desc    List vehicles (admins: all, users: their own)
 // @route   GET /api/cars
-// @access  Public
-const getCars = async (req, res) => {
-  try {
-    // If user is admin, return all cars. Otherwise, return only their own.
-    let query = {};
-    if (req.user.role !== 'admin') {
-      query = { owner: req.user._id };
-    }
-
-    const cars = await Car.find(query)
-      .populate('owner', 'name email')
-      .populate('services')
-      .sort({ createdAt: -1 });
-
-    res.json({
-      success: true,
-      count: cars.length,
-      data: cars
-    });
-  } catch (error) {
-    console.error('Get cars error:', error.message);
-    res.status(500).json({
-      success: false,
-      message: 'Server error'
-    });
-  }
-};
-
-// @desc    Get single car
-// @route   GET /api/cars/:id
-// @access  Public
-const getCarById = async (req, res) => {
-  try {
-    const car = await Car.findById(req.params.id)
-      .populate('owner', 'name email')
-      .populate('services');
-
-    if (car) {
-      res.json({
-        success: true,
-        data: car
-      });
-    } else {
-      res.status(404).json({
-        success: false,
-        message: 'Car not found'
-      });
-    }
-  } catch (error) {
-    console.error('Get car error:', error.message);
-    res.status(500).json({
-      success: false,
-      message: 'Server error'
-    });
-  }
-};
-
-// @desc    Create new car
-// @route   POST /api/cars
 // @access  Private
-const createCar = async (req, res) => {
-  try {
-    const carData = {
-      ...req.body,
-      owner: req.user._id
-    };
+const getCars = asyncHandler(async (req, res) => {
+  const query = req.user.role === 'admin' ? {} : { owner: req.user._id };
 
-    // Add image path if file was uploaded
-    const imagePath = await handleFileUpload(req);
-    if (imagePath) {
-      carData.image = imagePath;
-    }
+  const cars = await Car.find(query)
+    .populate('owner', 'name email')
+    .populate('services', 'cost date serviceType')
+    .sort({ createdAt: -1 });
 
-    const car = await Car.create(carData);
+  res.json({ success: true, count: cars.length, data: cars });
+});
 
-    const populatedCar = await Car.findById(car._id)
-      .populate('owner', 'name email');
-
-    res.status(201).json({
-      success: true,
-      message: 'Car created successfully',
-      data: populatedCar
-    });
-
-    // Notify admins about new vehicle
-    sendNotificationToAdmins({
-      title: 'New Vehicle Registered',
-      message: `${req.user.name} added a new ${car.brand} ${car.model}.`,
-      type: 'info',
-      carId: car._id
-    });
-
-    // Log action
-    await logAction({
-      action: 'CREATE_VEHICLE',
-      userId: req.user._id,
-      performedBy: 'user',
-      req,
-      meta: { carId: car._id, brand: car.brand, model: car.model }
-    });
-  } catch (error) {
-    console.error('Create car error:', error.message);
-    res.status(500).json({
-      success: false,
-      message: 'Server error'
-    });
-  }
-};
-
-// @desc    Update car
-// @route   PUT /api/cars/:id
-// @access  Private
-const updateCar = async (req, res) => {
-  try {
-    const car = await Car.findById(req.params.id);
-
-    if (!car) {
-      return res.status(404).json({
-        success: false,
-        message: 'Car not found'
-      });
-    }
-
-    // Check if user owns the car or is admin
-    if (car.owner.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
-      return res.status(403).json({
-        success: false,
-        message: 'Not authorized to update this car'
-      });
-    }
-
-    const updateData = { ...req.body };
-
-    // Add image path if file was uploaded
-    const imagePath = await handleFileUpload(req);
-    if (imagePath) {
-      updateData.image = imagePath;
-    }
-
-    const updatedCar = await Car.findByIdAndUpdate(
-      req.params.id,
-      updateData,
-      { new: true, runValidators: true }
-    ).populate('owner', 'name email')
-     .populate('services');
-
-    res.json({
-      success: true,
-      message: 'Car updated successfully',
-      data: updatedCar
-    });
-
-    // Log action
-    await logAction({
-      action: 'UPDATE_VEHICLE',
-      userId: req.user._id,
-      performedBy: req.user.role === 'admin' ? 'admin' : 'user',
-      req,
-      meta: { carId: updatedCar._id, updates: Object.keys(updateData) }
-    });
-  } catch (error) {
-    console.error('Update car error:', error.message);
-    console.error('Full error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
-  }
-};
-
-// @desc    Delete car
-// @route   DELETE /api/cars/:id
-// @access  Private
-const deleteCar = async (req, res) => {
-  try {
-    const car = await Car.findById(req.params.id);
-
-    if (!car) {
-      return res.status(404).json({
-        success: false,
-        message: 'Car not found'
-      });
-    }
-
-    // Check if user owns the car or is admin
-    if (car.owner.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
-      return res.status(403).json({
-        success: false,
-        message: 'Not authorized to delete this car'
-      });
-    }
-
-    await Car.findByIdAndDelete(req.params.id);
-
-    res.json({
-      success: true,
-      message: 'Car deleted successfully'
-    });
-
-    // Log action
-    await logAction({
-      action: 'DELETE_VEHICLE',
-      userId: req.user._id,
-      performedBy: req.user.role === 'admin' ? 'admin' : 'user',
-      req,
-      meta: { carId: req.params.id, brand: car.brand, model: car.model }
-    });
-  } catch (error) {
-    console.error('Delete car error:', error.message);
-    res.status(500).json({
-      success: false,
-      message: 'Server error'
-    });
-  }
-};
-
-// @desc    Get user's cars
+// @desc    Get the logged-in user's vehicles
 // @route   GET /api/cars/my-cars
 // @access  Private
-const getUserCars = async (req, res) => {
-  try {
-    const cars = await Car.find({ owner: req.user._id })
-      .populate('owner', 'name email')
-      .populate('services')
-      .sort({ createdAt: -1 });
+const getUserCars = asyncHandler(async (req, res) => {
+  const cars = await Car.find({ owner: req.user._id })
+    .populate('owner', 'name email')
+    .populate('services', 'cost date serviceType')
+    .sort({ createdAt: -1 });
 
-    res.json({
-      success: true,
-      count: cars.length,
-      data: cars
-    });
-  } catch (error) {
-    console.error('Get user cars error:', error.message);
-    res.status(500).json({
-      success: false,
-      message: 'Server error'
-    });
+  res.json({ success: true, count: cars.length, data: cars });
+});
+
+// @desc    Get one vehicle. Anyone with the link (e.g. from a QR code) sees the
+//          public details; only the owner or an admin sees contact info and history.
+// @route   GET /api/cars/:id
+// @access  Public (richer response when authorised)
+const getCarById = asyncHandler(async (req, res) => {
+  const car = await Car.findById(req.params.id).populate('owner', 'name email');
+  if (!car) throw new HttpError(404, 'Vehicle not found');
+
+  const canManage = isOwnerOrAdmin(car, req.user);
+  const data = car.toObject();
+
+  if (!canManage) {
+    data.owner = car.owner ? { _id: car.owner._id, name: car.owner.name } : null;
+    delete data.services;
+    delete data.status;
   }
-};
 
-module.exports = {
-  getCars,
-  getCarById,
-  createCar,
-  updateCar,
-  deleteCar,
-  getUserCars
-};
+  res.json({ success: true, data: { ...data, canManage } });
+});
+
+// @desc    Create a vehicle
+// @route   POST /api/cars
+// @access  Private
+const createCar = asyncHandler(async (req, res) => {
+  const carData = { ...pick(req.body, EDITABLE_FIELDS), owner: req.user._id };
+
+  const image = await storeImage(req.file);
+  if (image) carData.image = image;
+
+  let car;
+  try {
+    car = await Car.create(carData);
+  } catch (error) {
+    removeLocalImage(image);
+    throw error;
+  }
+
+  await car.populate('owner', 'name email');
+
+  res.status(201).json({ success: true, message: 'Vehicle added', data: car });
+
+  notifyAdmins({
+    title: 'New vehicle registered',
+    message: `${req.user.name} added a ${car.year} ${car.brand} ${car.model}.`,
+    link: `/cars/${car._id}`,
+  });
+  logAction({
+    action: 'CREATE_VEHICLE',
+    userId: req.user._id,
+    req,
+    meta: { carId: car._id, vehicle: `${car.brand} ${car.model}` },
+  });
+});
+
+// @desc    Update a vehicle
+// @route   PUT /api/cars/:id
+// @access  Private (owner or admin)
+const updateCar = asyncHandler(async (req, res) => {
+  const car = await findManageableCar(req.params.id, req.user);
+  const previousImage = car.image;
+
+  const updates = pick(req.body, EDITABLE_FIELDS);
+  // Allow clearing optional fields from the edit form.
+  ['color', 'description'].forEach((field) => {
+    if (req.body[field] === '') updates[field] = '';
+  });
+  if (req.body.mileage === '') updates.mileage = undefined;
+
+  car.set(updates);
+
+  const image = await storeImage(req.file);
+  if (image) car.image = image;
+
+  try {
+    await car.save();
+  } catch (error) {
+    if (image) removeLocalImage(image);
+    throw error;
+  }
+
+  if (image && previousImage !== image) removeLocalImage(previousImage);
+
+  await car.populate('owner', 'name email');
+
+  res.json({ success: true, message: 'Vehicle updated', data: car });
+
+  logAction({
+    action: 'UPDATE_VEHICLE',
+    userId: req.user._id,
+    performedBy: req.user.role === 'admin' ? 'admin' : 'user',
+    req,
+    meta: { carId: car._id, fields: Object.keys(updates).concat(image ? ['image'] : []) },
+  });
+});
+
+// @desc    Delete a vehicle together with its services and fuel log
+// @route   DELETE /api/cars/:id
+// @access  Private (owner or admin)
+const deleteCar = asyncHandler(async (req, res) => {
+  const car = await findManageableCar(req.params.id, req.user);
+
+  await Promise.all([
+    Service.deleteMany({ car: car._id }),
+    FuelEntry.deleteMany({ car: car._id }),
+    car.deleteOne(),
+  ]);
+  removeLocalImage(car.image);
+
+  res.json({ success: true, message: 'Vehicle deleted' });
+
+  logAction({
+    action: 'DELETE_VEHICLE',
+    userId: req.user._id,
+    performedBy: req.user.role === 'admin' ? 'admin' : 'user',
+    req,
+    meta: { carId: car._id, vehicle: `${car.brand} ${car.model}` },
+  });
+});
+
+module.exports = { getCars, getUserCars, getCarById, createCar, updateCar, deleteCar, findManageableCar };

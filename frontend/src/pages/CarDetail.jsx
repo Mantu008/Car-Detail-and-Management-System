@@ -1,422 +1,240 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import api from '../config/api';
+import { useEffect, useState } from 'react';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import api from '../config/api';
+import useFetch from '../hooks/useFetch';
 import { useAuth } from '../context/authContext';
+import { useConfirm } from '../context/confirmContext';
 import CarQRCode from '../components/CarQRCode';
 import FuelTracker from '../components/FuelTracker';
 import ServiceCostEstimator from '../components/ServiceCostEstimator';
-import { getImageUrl, handleImageError } from '../utils/imageUtils';
+import ServiceHistory from '../components/car/ServiceHistory';
+import { Alert, Badge, Button, EmptyState, Icon, PageLoader, Tabs, VehicleImage } from '../components/ui';
+import { errorMessage, formatCurrency, formatDate, formatKm, vehicleName } from '../utils/format';
+
+const Spec = ({ label, children }) => (
+  <div className="py-3 sm:grid sm:grid-cols-3 sm:gap-4">
+    <dt className="text-sm text-slate-500">{label}</dt>
+    <dd className="mt-0.5 text-sm font-medium text-slate-900 sm:col-span-2 sm:mt-0">{children || '—'}</dd>
+  </div>
+);
 
 const CarDetail = () => {
-    const [car, setCar] = useState(null);
-    const [services, setServices] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [showServiceForm, setShowServiceForm] = useState(false);
-    const [serviceForm, setServiceForm] = useState({
-        description: '',
-        cost: '',
-        serviceType: 'maintenance',
-        serviceProvider: ''
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const confirm = useConfirm();
+  const { isAuthenticated, isAdmin } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tab = searchParams.get('tab') || 'overview';
+  const [showQR, setShowQR] = useState(false);
+
+  // Re-fetch when auth changes so owners see their full record.
+  const { data: car, loading, error, setData: setCar } = useFetch(`/api/cars/${id}`, { params: { auth: isAuthenticated } });
+  const canManage = !!car?.canManage;
+  const services = useFetch(canManage ? `/api/services/${id}` : null, { initialData: [] });
+
+  useEffect(() => {
+    if (car && !canManage && tab !== 'overview') setSearchParams({}, { replace: true });
+  }, [car, canManage, tab, setSearchParams]);
+
+  const setTab = (value) => setSearchParams(value === 'overview' ? {} : { tab: value }, { replace: true });
+
+  const handleDelete = async () => {
+    const ok = await confirm({
+      title: `Delete ${vehicleName(car)}?`,
+      message: 'The vehicle, its service history and fuel log will be permanently removed.',
+      confirmText: 'Delete vehicle',
+      tone: 'danger',
     });
-    const [showQRCode, setShowQRCode] = useState(false);
-    const [showFuelTracker, setShowFuelTracker] = useState(false);
-    const [showCostEstimator, setShowCostEstimator] = useState(false);
-    const { id } = useParams();
-    const { isAuthenticated, user } = useAuth();
-
-    // Scroll to top when component mounts
-    useEffect(() => {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    }, [id]);
-
-    useEffect(() => {
-        fetchCarDetails();
-    }, [id]);
-
-    useEffect(() => {
-        if (isAuthenticated && car) {
-            fetchServices();
-        }
-    }, [isAuthenticated, car]);
-
-    const fetchCarDetails = async () => {
-        try {
-            const response = await api.get(`/api/cars/${id}`);
-            setCar(response.data.data);
-        } catch (error) {
-            toast.error('Failed to fetch vehicle details');
-            console.error('Error fetching vehicle:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const fetchServices = async () => {
-        try {
-            const response = await api.get(`/api/services/${id}`);
-            setServices(response.data.data);
-        } catch (error) {
-            console.error('Error fetching services:', error);
-            setServices([]);
-        }
-    };
-
-    const handleServiceSubmit = async (e) => {
-        e.preventDefault();
-        try {
-            await api.post('/api/services', {
-                ...serviceForm,
-                car: id,
-                cost: parseFloat(serviceForm.cost),
-                date: new Date()
-            });
-
-            toast.success('Service added successfully!');
-            setServiceForm({
-                description: '',
-                cost: '',
-                serviceType: 'maintenance',
-                serviceProvider: ''
-            });
-            setShowServiceForm(false);
-            fetchServices();
-        } catch (error) {
-            toast.error(error.response?.data?.message || 'Failed to add service');
-        }
-    };
-
-    const handleDeleteService = async (serviceId) => {
-        if (window.confirm('Are you sure you want to delete this service record?')) {
-            try {
-                await api.delete(`/api/services/${serviceId}`);
-                toast.success('Service deleted successfully!');
-                fetchServices();
-            } catch (error) {
-                toast.error('Failed to delete service');
-            }
-        }
-    };
-
-    if (loading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center">
-                <div className="animate-spin rounded-full h-16 w-16 sm:h-20 sm:w-20 border-4 border-blue-600 border-t-transparent"></div>
-            </div>
-        );
+    if (!ok) return;
+    try {
+      await api.delete(`/api/cars/${id}`);
+      toast.success('Vehicle deleted');
+      navigate(isAdmin ? '/admin/vehicles' : '/my-cars');
+    } catch (err) {
+      toast.error(errorMessage(err, 'Could not delete the vehicle'));
     }
+  };
 
-    if (!car) {
-        return (
-            <div className="min-h-screen flex items-center justify-center px-4">
-                <div className="text-center">
-                    <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4">Vehicle not found</h2>
-                    <Link
-                        to="/cars"
-                        className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-200 touch-target"
-                    >
-                        Back to Vehicles
-                    </Link>
-                </div>
-            </div>
-        );
+  const toggleFlag = async () => {
+    const next = car.status === 'suspicious' ? 'normal' : 'suspicious';
+    try {
+      await api.put(`/api/admin/vehicles/${id}/status`, { status: next });
+      setCar({ ...car, status: next });
+      toast.success(next === 'suspicious' ? 'Vehicle flagged for review' : 'Flag cleared');
+    } catch (err) {
+      toast.error(errorMessage(err));
     }
+  };
 
-    const canManageCar = isAuthenticated && (user?.role === 'admin' || car.owner?._id === user?._id);
+  if (loading) return <PageLoader />;
 
+  if (error || !car) {
     return (
-        <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white py-6 sm:py-8">
-            <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-                {/* Car Details */}
-                <div className="bg-white rounded-xl shadow-lg p-8 mb-8">
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                        <div>
-                            {/* Car Image */}
-                            {car.image && (
-                                <div className="mb-6">
-                                    <img
-                                        src={getImageUrl(car.image)}
-                                        alt={`${car.brand} ${car.model}`}
-                                        className="w-full h-64 object-cover rounded-lg"
-                                        onError={handleImageError}
-                                    />
-                                </div>
-                            )}
-
-                            <h1 className="text-3xl font-bold text-gray-800 mb-4">
-                                {car.brand} {car.model}
-                            </h1>
-
-                            <div className="space-y-4">
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="text-sm font-medium text-gray-600">Brand</label>
-                                        <p className="text-lg font-semibold">{car.brand}</p>
-                                    </div>
-                                    <div>
-                                        <label className="text-sm font-medium text-gray-600">Model</label>
-                                        <p className="text-lg font-semibold">{car.model}</p>
-                                    </div>
-                                    <div>
-                                        <label className="text-sm font-medium text-gray-600">Year</label>
-                                        <p className="text-lg font-semibold">{car.year}</p>
-                                    </div>
-                                    <div>
-                                        <label className="text-sm font-medium text-gray-600">Price</label>
-                                        <p className="text-lg font-semibold text-green-600">
-                                            ₹{car.price?.toLocaleString('en-IN')}
-                                        </p>
-                                    </div>
-                                    {car.color && (
-                                        <div>
-                                            <label className="text-sm font-medium text-gray-600">Color</label>
-                                            <p className="text-lg font-semibold capitalize">{car.color}</p>
-                                        </div>
-                                    )}
-                                    {car.mileage && (
-                                        <div>
-                                            <label className="text-sm font-medium text-gray-600">Mileage</label>
-                                            <p className="text-lg font-semibold">{car.mileage.toLocaleString()} miles</p>
-                                        </div>
-                                    )}
-                                </div>
-
-                                {car.description && (
-                                    <div>
-                                        <label className="text-sm font-medium text-gray-600">Description</label>
-                                        <p className="text-gray-800">{car.description}</p>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-
-                        <div>
-                            {car.owner && (
-                                <div className="bg-gray-50 rounded-lg p-6">
-                                    <h3 className="text-lg font-semibold mb-4">Owner Information</h3>
-                                    <div className="space-y-2">
-                                        <p><span className="font-medium">Name:</span> {car.owner.name}</p>
-                                        <p><span className="font-medium">Email:</span> {car.owner.email}</p>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Advanced Features - Available for all users */}
-                            <div className="mt-6 space-y-4">
-                                <button
-                                    onClick={() => setShowQRCode(true)}
-                                    className="block w-full bg-purple-600 hover:bg-purple-700 text-white py-3 px-4 rounded-lg font-medium transition-colors"
-                                >
-                                    📱 Generate QR Code
-                                </button>
-
-                                <button
-                                    onClick={() => setShowFuelTracker(true)}
-                                    className="block w-full bg-yellow-600 hover:bg-yellow-700 text-white py-3 px-4 rounded-lg font-medium transition-colors"
-                                >
-                                    ⛽ Fuel Efficiency Tracker
-                                </button>
-
-                                <button
-                                    onClick={() => setShowCostEstimator(true)}
-                                    className="block w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 px-4 rounded-lg font-medium transition-colors"
-                                >
-                                    💰 Service Cost Estimator
-                                </button>
-                            </div>
-
-                            {canManageCar && (
-                                <div className="mt-6 space-y-4">
-                                    <Link
-                                        to={`/edit-car/${car._id}`}
-                                        className="block w-full bg-blue-600 hover:bg-blue-700 text-white text-center py-3 px-4 rounded-lg font-medium transition-colors"
-                                    >
-                                        Edit Vehicle Details
-                                    </Link>
-
-                                    <button
-                                        onClick={() => setShowServiceForm(!showServiceForm)}
-                                        className="block w-full bg-green-600 hover:bg-green-700 text-white py-3 px-4 rounded-lg font-medium transition-colors"
-                                    >
-                                        {showServiceForm ? 'Cancel Add Service' : 'Add Service Record'}
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-
-                {/* Service Form */}
-                {showServiceForm && canManageCar && (
-                    <div className="bg-white rounded-xl shadow-lg p-8 mb-8">
-                        <h2 className="text-2xl font-bold text-gray-800 mb-6">Add Service Record</h2>
-
-                        <form onSubmit={handleServiceSubmit} className="space-y-6">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Service Type
-                                    </label>
-                                    <select
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                        value={serviceForm.serviceType}
-                                        onChange={(e) => setServiceForm({ ...serviceForm, serviceType: e.target.value })}
-                                    >
-                                        <option value="maintenance">Maintenance</option>
-                                        <option value="repair">Repair</option>
-                                        <option value="inspection">Inspection</option>
-                                        <option value="other">Other</option>
-                                    </select>
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Cost (₹)
-                                    </label>
-                                    <input
-                                        type="number"
-                                        name="cost"
-                                        min="0"
-                                        required
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                        value={serviceForm.cost}
-                                        onChange={(e) => setServiceForm({ ...serviceForm, cost: e.target.value })}
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Service Provider
-                                    </label>
-                                    <input
-                                        type="text"
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                        value={serviceForm.serviceProvider}
-                                        onChange={(e) => setServiceForm({ ...serviceForm, serviceProvider: e.target.value })}
-                                        placeholder="e.g., Auto Shop, Dealership"
-                                    />
-                                </div>
-
-                                <div className="md:col-span-2">
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Description *
-                                    </label>
-                                    <textarea
-                                        rows="4"
-                                        required
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                        value={serviceForm.description}
-                                        onChange={(e) => setServiceForm({ ...serviceForm, description: e.target.value })}
-                                        placeholder="Describe the service performed..."
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="flex space-x-4">
-                                <button
-                                    type="submit"
-                                    className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-6 rounded-lg font-medium transition-colors"
-                                >
-                                    Add Service
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setShowServiceForm(false)}
-                                    className="bg-gray-600 hover:bg-gray-700 text-white py-2 px-6 rounded-lg font-medium transition-colors"
-                                >
-                                    Cancel
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                )}
-
-                {/* Service History */}
-                {isAuthenticated && (
-                    <div className="bg-white rounded-xl shadow-lg p-8">
-                        <h2 className="text-2xl font-bold text-gray-800 mb-6">Service History</h2>
-
-                        {services.length === 0 ? (
-                            <div className="text-center py-8">
-                                <div className="text-4xl mb-4">🔧</div>
-                                <p className="text-gray-600">No service records found for this vehicle.</p>
-                                {canManageCar && (
-                                    <button
-                                        onClick={() => setShowServiceForm(true)}
-                                        className="mt-4 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
-                                    >
-                                        Add First Service
-                                    </button>
-                                )}
-                            </div>
-                        ) : (
-                            <div className="space-y-4">
-                                {services.map(service => (
-                                    <div key={service._id} className="border border-gray-200 rounded-lg p-6">
-                                        <div className="flex justify-between items-start mb-4">
-                                            <div>
-                                                <h3 className="text-lg font-semibold text-gray-800 capitalize">
-                                                    {service.serviceType} Service
-                                                </h3>
-                                                <p className="text-sm text-gray-600">
-                                                    {new Date(service.date).toLocaleDateString()}
-                                                </p>
-                                            </div>
-                                            <div className="text-right">
-                                                <p className="text-lg font-bold text-green-600">
-                                                    ₹{service.cost?.toLocaleString('en-IN')}
-                                                </p>
-                                                {canManageCar && (
-                                                    <button
-                                                        onClick={() => handleDeleteService(service._id)}
-                                                        className="mt-2 text-red-600 hover:text-red-800 text-sm"
-                                                    >
-                                                        Delete
-                                                    </button>
-                                                )}
-                                            </div>
-                                        </div>
-
-                                        <p className="text-gray-800 mb-2">{service.description}</p>
-
-                                        {service.serviceProvider && (
-                                            <p className="text-sm text-gray-600">
-                                                <span className="font-medium">Provider:</span> {service.serviceProvider}
-                                            </p>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                )}
-
-                {/* QR Code Modal */}
-                {showQRCode && car && (
-                    <CarQRCode
-                        car={car}
-                        onClose={() => setShowQRCode(false)}
-                    />
-                )}
-
-                {/* Fuel Tracker Modal */}
-                {showFuelTracker && car && (
-                    <FuelTracker
-                        car={car}
-                        onClose={() => setShowFuelTracker(false)}
-                    />
-                )}
-
-                {/* Service Cost Estimator Modal */}
-                {showCostEstimator && car && (
-                    <ServiceCostEstimator
-                        car={car}
-                        onClose={() => setShowCostEstimator(false)}
-                    />
-                )}
-            </div>
+      <div className="page">
+        <div className="card">
+          <EmptyState
+            icon="car"
+            title="Vehicle not found"
+            description="It may have been deleted, or the link is incorrect."
+            action={
+              <Link to={isAuthenticated ? '/my-cars' : '/'} className="btn btn-secondary">
+                Go back
+              </Link>
+            }
+          />
         </div>
+      </div>
     );
+  }
+
+  const serviceList = services.data || [];
+  const totalServiceCost = serviceList.reduce((s, x) => s + (x.cost || 0), 0);
+  const lastService = serviceList[0];
+
+  return (
+    <div className="page">
+      {isAuthenticated && (
+        <Link to={isAdmin ? '/admin/vehicles' : '/my-cars'} className="mb-4 inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-900">
+          <Icon name="arrowLeft" /> {isAdmin ? 'All vehicles' : 'My vehicles'}
+        </Link>
+      )}
+
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-2xl font-semibold sm:text-[1.75rem]">{vehicleName(car)}</h1>
+            <Badge>{car.type}</Badge>
+            {car.status === 'suspicious' && (
+              <Badge tone="red" dot>
+                Flagged
+              </Badge>
+            )}
+          </div>
+          <p className="mt-1 text-sm text-slate-500">
+            {car.year}
+            {car.color && ` · ${car.color}`} · Owned by {car.owner?.name || 'Unknown'}
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="secondary" icon="qr" onClick={() => setShowQR(true)}>
+            QR code
+          </Button>
+          {canManage && (
+            <>
+              <Link to={`/cars/${id}/edit`} className="btn btn-secondary">
+                <Icon name="edit" /> Edit
+              </Link>
+              {isAdmin && (
+                <Button variant="secondary" icon="flag" onClick={toggleFlag}>
+                  {car.status === 'suspicious' ? 'Clear flag' : 'Flag'}
+                </Button>
+              )}
+              <Button variant="danger-ghost" icon="trash" onClick={handleDelete} aria-label="Delete vehicle">
+                Delete
+              </Button>
+            </>
+          )}
+        </div>
+      </div>
+
+      {car.status === 'suspicious' && canManage && !isAdmin && (
+        <Alert tone="amber" className="mb-6" title="This vehicle has been flagged for review">
+          An administrator has marked this vehicle for review. If you believe this is a mistake,{' '}
+          <Link to="/support" className="underline">
+            contact support
+          </Link>
+          .
+        </Alert>
+      )}
+
+      {canManage && (
+        <div className="mb-6">
+          <Tabs
+            value={tab}
+            onChange={setTab}
+            tabs={[
+              { value: 'overview', label: 'Overview', icon: 'car' },
+              { value: 'services', label: 'Service history', icon: 'wrench', count: serviceList.length },
+              { value: 'fuel', label: 'Fuel log', icon: 'fuel' },
+              { value: 'costs', label: 'Cost insights', icon: 'calculator' },
+            ]}
+          />
+        </div>
+      )}
+
+      {tab === 'overview' && (
+        <div className="grid gap-6 lg:grid-cols-5">
+          <div className="lg:col-span-3">
+            <div className="card overflow-hidden">
+              <VehicleImage src={car.image} alt={vehicleName(car)} className="aspect-[16/9] w-full" iconClass="h-16 w-16" />
+            </div>
+            {car.description && (
+              <div className="card mt-6 p-5">
+                <h2 className="text-sm font-semibold">Notes</h2>
+                <p className="mt-2 whitespace-pre-line text-sm text-slate-600">{car.description}</p>
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-6 lg:col-span-2">
+            <div className="card px-5">
+              <dl className="divide-y divide-slate-100">
+                <Spec label="Price">{formatCurrency(car.price)}</Spec>
+                <Spec label="Year">{car.year}</Spec>
+                <Spec label="Type">{car.type}</Spec>
+                <Spec label="Colour">{car.color}</Spec>
+                <Spec label="Odometer">{car.mileage != null ? formatKm(car.mileage) : null}</Spec>
+                <Spec label="Added">{formatDate(car.createdAt)}</Spec>
+              </dl>
+            </div>
+
+            <div className="card p-5">
+              <h2 className="text-sm font-semibold">Owner</h2>
+              <p className="mt-2 text-sm font-medium">{car.owner?.name || 'Unknown'}</p>
+              {car.owner?.email && <p className="text-sm text-slate-500">{car.owner.email}</p>}
+            </div>
+
+            {canManage ? (
+              <div className="card p-5">
+                <h2 className="text-sm font-semibold">Service summary</h2>
+                <dl className="mt-3 grid grid-cols-2 gap-4">
+                  <div>
+                    <dt className="text-xs text-slate-500">Total spent</dt>
+                    <dd className="mt-0.5 font-semibold tabular-nums">{formatCurrency(totalServiceCost)}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-slate-500">Last service</dt>
+                    <dd className="mt-0.5 font-semibold">{lastService ? formatDate(lastService.date) : '—'}</dd>
+                  </div>
+                </dl>
+                <Button variant="secondary" size="sm" className="mt-4 w-full" onClick={() => setTab('services')}>
+                  View service history
+                </Button>
+              </div>
+            ) : (
+              !isAuthenticated && (
+                <Alert tone="blue" title="Are you the owner?">
+                  <Link to="/login" state={{ from: `/cars/${id}` }} className="underline">
+                    Sign in
+                  </Link>{' '}
+                  to see the full service history and fuel log.
+                </Alert>
+              )
+            )}
+          </div>
+        </div>
+      )}
+
+      {canManage && tab === 'services' && (
+        services.loading ? <PageLoader className="py-16" /> : <ServiceHistory carId={id} services={serviceList} setServices={services.setData} />
+      )}
+      {canManage && tab === 'fuel' && <FuelTracker car={car} />}
+      {canManage && tab === 'costs' && (services.loading ? <PageLoader className="py-16" /> : <ServiceCostEstimator services={serviceList} />)}
+
+      {showQR && <CarQRCode car={car} onClose={() => setShowQR(false)} />}
+    </div>
+  );
 };
 
 export default CarDetail;

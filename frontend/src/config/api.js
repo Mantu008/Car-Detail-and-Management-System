@@ -1,45 +1,55 @@
 import axios from 'axios';
 
-// Get the API base URL from environment variables
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+export const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/$/, '');
 
-// Create axios instance with base configuration
-const api = axios.create({
-  baseURL: API_BASE_URL,
-  timeout: 10000,
-  headers: {
-    'Content-Type': 'application/json',
+const TOKEN_KEY = 'cms_token';
+
+export const tokenStore = {
+  get: () => {
+    try {
+      return localStorage.getItem(TOKEN_KEY);
+    } catch {
+      return null;
+    }
   },
+  set: (token) => {
+    try {
+      localStorage.setItem(TOKEN_KEY, token);
+    } catch {
+      /* storage unavailable */
+    }
+  },
+  clear: () => {
+    try {
+      localStorage.removeItem(TOKEN_KEY);
+    } catch {
+      /* storage unavailable */
+    }
+  },
+};
+
+const api = axios.create({ baseURL: API_BASE_URL, timeout: 20000 });
+
+api.interceptors.request.use((config) => {
+  const token = tokenStore.get();
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
 });
 
-// Request interceptor to add auth token
-api.interceptors.request.use(
-  (config) => {
-    const token = sessionStorage.getItem('auth_token');
-    if (token) {
-      try {
-        const { token: authToken } = JSON.parse(token);
-        config.headers.Authorization = `Bearer ${authToken}`;
-      } catch (error) {
-        console.error('Error parsing auth token:', error);
-        sessionStorage.removeItem('auth_token');
-      }
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
+// Login/registration endpoints legitimately return 401 for bad credentials;
+// only an expired session elsewhere should sign the user out.
+const AUTH_ENDPOINTS = ['/api/users/login', '/api/users/register', '/api/auth/2fa/validate'];
 
-// Response interceptor to handle errors
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      // Token expired or invalid
-      sessionStorage.removeItem('auth_token');
-      window.location.href = '/login';
+    const status = error.response?.status;
+    const url = error.config?.url || '';
+    const isAuthCall = AUTH_ENDPOINTS.some((path) => url.includes(path));
+
+    if (!isAuthCall && tokenStore.get() && (status === 401 || (status === 403 && /blocked/i.test(error.response?.data?.message || '')))) {
+      tokenStore.clear();
+      window.dispatchEvent(new CustomEvent('auth:expired', { detail: error.response?.data?.message }));
     }
     return Promise.reject(error);
   }

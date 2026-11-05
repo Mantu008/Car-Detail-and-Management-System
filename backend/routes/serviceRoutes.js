@@ -1,21 +1,21 @@
 const express = require('express');
-const router = express.Router();
 const {
   createService,
   getCarServices,
   updateService,
   deleteService,
-  getAllServices
+  getAllServices,
 } = require('../controllers/serviceController');
-const { protect, adminOnly, userOrAdmin } = require('../middleware/authMiddleware');
+const { protect } = require('../middleware/authMiddleware');
 
-// Admin only routes (must come before parameterized routes)
-router.get('/', protect, getAllServices);
+const router = express.Router();
 
-// Protected routes
-router.post('/', protect, userOrAdmin, createService);
-router.get('/:carId', protect, userOrAdmin, getCarServices);
-router.put('/:id', protect, userOrAdmin, updateService);
-router.delete('/:id', protect, userOrAdmin, deleteService);
+router.use(protect);
+
+router.get('/', getAllServices);
+router.post('/', createService);
+router.get('/:carId', getCarServices);
+router.put('/:id', updateService);
+router.delete('/:id', deleteService);
 
 module.exports = router;

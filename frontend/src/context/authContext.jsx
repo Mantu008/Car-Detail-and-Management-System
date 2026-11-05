@@ -1,249 +1,109 @@
-import React, { createContext, useContext, useReducer, useEffect, useCallback, useRef } from 'react';
-import api from '../config/api';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { toast } from 'react-toastify';
+import api, { tokenStore } from '../config/api';
+import { errorMessage } from '../utils/format';
 
-const AuthContext = createContext();
-
-// Use a simpler approach - store token in sessionStorage with a consistent key
-// but add a timestamp to detect if it's from a different session
-const getStoredToken = () => {
-    const tokenData = sessionStorage.getItem('auth_token');
-    if (tokenData) {
-        try {
-            const { token, timestamp } = JSON.parse(tokenData);
-            // Check if token is less than 24 hours old
-            const now = Date.now();
-            const tokenAge = now - timestamp;
-            if (tokenAge < 24 * 60 * 60 * 1000) { // 24 hours
-                return token;
-            } else {
-                // Token is too old, remove it
-                sessionStorage.removeItem('auth_token');
-            }
-        } catch (error) {
-            // Invalid token data, remove it
-            sessionStorage.removeItem('auth_token');
-        }
-    }
-    return null;
-};
-
-const initialState = {
-    user: null,
-    token: getStoredToken(),
-    loading: true,
-    error: null
-};
-
-const authReducer = (state, action) => {
-    switch (action.type) {
-        case 'LOGIN_START':
-        case 'REGISTER_START':
-            return {
-                ...state,
-                loading: true,
-                error: null
-            };
-        case 'LOGIN_SUCCESS':
-        case 'REGISTER_SUCCESS':
-            return {
-                ...state,
-                user: action.payload.user,
-                token: action.payload.token,
-                loading: false,
-                error: null
-            };
-        case 'LOGIN_FAILURE':
-        case 'REGISTER_FAILURE':
-        case 'AUTH_ERROR':
-            return {
-                ...state,
-                user: null,
-                token: null,
-                loading: false,
-                error: action.payload
-            };
-        case 'LOGOUT':
-            return {
-                ...state,
-                user: null,
-                token: null,
-                loading: false,
-                error: null
-            };
-        case 'CLEAR_ERROR':
-            return {
-                ...state,
-                error: null
-            };
-        case 'NO_TOKEN':
-            return {
-                ...state,
-                user: null,
-                token: null,
-                loading: false,
-                error: null
-            };
-        default:
-            return state;
-    }
-};
+const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-    const [state, dispatch] = useReducer(authReducer, initialState);
-    const hasLoadedUser = useRef(false);
+  const [user, setUser] = useState(null);
+  // True only while restoring a saved session on first load.
+  const [initializing, setInitializing] = useState(() => !!tokenStore.get());
 
-    // Note: API configuration is now handled in the api.js config file
+  const startSession = useCallback(({ user: nextUser, token }) => {
+    tokenStore.set(token);
+    setUser(nextUser);
+  }, []);
 
-    // Cleanup on tab close
-    useEffect(() => {
-        const handleBeforeUnload = () => {
-            // Only cleanup when tab is actually closed, not on refresh
-            // Use a flag to detect if it's a refresh
-            sessionStorage.setItem('tab_closing', 'true');
-            setTimeout(() => {
-                if (sessionStorage.getItem('tab_closing') === 'true') {
-                    sessionStorage.removeItem('auth_token');
-                    sessionStorage.removeItem('tab_closing');
-                }
-            }, 100);
-        };
+  const logout = useCallback(() => {
+    tokenStore.clear();
+    setUser(null);
+  }, []);
 
-        window.addEventListener('beforeunload', handleBeforeUnload);
+  // Restore session.
+  useEffect(() => {
+    if (!tokenStore.get()) return;
+    api
+      .get('/api/users/profile')
+      .then((res) => setUser(res.data.data))
+      .catch(() => tokenStore.clear())
+      .finally(() => setInitializing(false));
+  }, []);
 
-        return () => {
-            window.removeEventListener('beforeunload', handleBeforeUnload);
-        };
-    }, []);
-
-    // Clear the closing flag on page load (indicates it's a refresh, not a close)
-    useEffect(() => {
-        sessionStorage.removeItem('tab_closing');
-    }, []);
-
-    // Load user on app start - FIXED: Only run once on mount
-    useEffect(() => {
-        const loadUser = async () => {
-            const token = getStoredToken();
-
-            if (token && !hasLoadedUser.current) {
-                hasLoadedUser.current = true;
-                try {
-                    const response = await api.get('/api/users/profile');
-                    dispatch({
-                        type: 'LOGIN_SUCCESS',
-                        payload: {
-                            user: response.data.data,
-                            token: token
-                        }
-                    });
-                } catch (error) {
-                    sessionStorage.removeItem('auth_token');
-                    dispatch({
-                        type: 'AUTH_ERROR',
-                        payload: 'Session expired. Please login again.'
-                    });
-                }
-            } else if (!token) {
-                dispatch({ type: 'NO_TOKEN' });
-            }
-        };
-
-        loadUser();
-    }, []); // Empty dependency array - only run once on mount
-
-    const login = async (email, password) => {
-        dispatch({ type: 'LOGIN_START' });
-        try {
-            const response = await api.post('/api/users/login', { email, password });
-            const { data } = response.data;
-
-            sessionStorage.setItem('auth_token', JSON.stringify({
-                token: data.token,
-                timestamp: Date.now()
-            }));
-            dispatch({
-                type: 'LOGIN_SUCCESS',
-                payload: {
-                    user: {
-                        _id: data._id,
-                        name: data.name,
-                        email: data.email,
-                        role: data.role
-                    },
-                    token: data.token
-                }
-            });
-            return { success: true };
-        } catch (error) {
-            const message = error.response?.data?.message || 'Login failed';
-            dispatch({ type: 'LOGIN_FAILURE', payload: message });
-            return { success: false, message };
-        }
+  // Session expired or account blocked while using the app.
+  useEffect(() => {
+    const onExpired = (e) => {
+      setUser((current) => {
+        if (current) toast.info(e.detail || 'Your session has ended. Please sign in again.');
+        return null;
+      });
     };
+    window.addEventListener('auth:expired', onExpired);
+    return () => window.removeEventListener('auth:expired', onExpired);
+  }, []);
 
-    const register = async (name, email, password) => {
-        dispatch({ type: 'REGISTER_START' });
-        try {
-            const response = await api.post('/api/users/register', { name, email, password });
-            const { data } = response.data;
+  /** Returns { ok, requires2FA?, tempToken?, message? } */
+  const login = useCallback(
+    async (email, password) => {
+      try {
+        const { data } = await api.post('/api/users/login', { email, password });
+        if (data.data.requires2FA) return { ok: false, requires2FA: true, tempToken: data.data.tempToken };
+        startSession(data.data);
+        return { ok: true, user: data.data.user };
+      } catch (error) {
+        return { ok: false, message: errorMessage(error, 'Unable to sign in') };
+      }
+    },
+    [startSession]
+  );
 
-            sessionStorage.setItem('auth_token', JSON.stringify({
-                token: data.token,
-                timestamp: Date.now()
-            }));
-            dispatch({
-                type: 'REGISTER_SUCCESS',
-                payload: {
-                    user: {
-                        _id: data._id,
-                        name: data.name,
-                        email: data.email,
-                        role: data.role
-                    },
-                    token: data.token
-                }
-            });
-            return { success: true };
-        } catch (error) {
-            const message = error.response?.data?.message || 'Registration failed';
-            dispatch({ type: 'REGISTER_FAILURE', payload: message });
-            return { success: false, message };
-        }
-    };
+  const verifyTwoFactor = useCallback(
+    async (tempToken, code) => {
+      try {
+        const { data } = await api.post('/api/auth/2fa/validate', { tempToken, code });
+        startSession(data.data);
+        if (data.data.usedBackupCode) toast.info('Backup code used. Each code works only once.');
+        return { ok: true, user: data.data.user };
+      } catch (error) {
+        return { ok: false, message: errorMessage(error, 'Verification failed') };
+      }
+    },
+    [startSession]
+  );
 
-    const logout = () => {
-        sessionStorage.removeItem('auth_token');
-        dispatch({ type: 'LOGOUT' });
-    };
+  const register = useCallback(
+    async (name, email, password) => {
+      try {
+        const { data } = await api.post('/api/users/register', { name, email, password });
+        startSession(data.data);
+        return { ok: true, user: data.data.user };
+      } catch (error) {
+        return { ok: false, message: errorMessage(error, 'Unable to create account') };
+      }
+    },
+    [startSession]
+  );
 
-    const clearError = useCallback(() => {
-        dispatch({ type: 'CLEAR_ERROR' });
-    }, []);
+  const value = useMemo(
+    () => ({
+      user,
+      initializing,
+      isAuthenticated: !!user,
+      isAdmin: user?.role === 'admin',
+      login,
+      verifyTwoFactor,
+      register,
+      logout,
+      setUser,
+    }),
+    [user, initializing, login, verifyTwoFactor, register, logout]
+  );
 
-    const value = {
-        user: state.user,
-        token: state.token,
-        loading: state.loading,
-        error: state.error,
-        login,
-        register,
-        logout,
-        clearError,
-        isAuthenticated: !!state.user,
-        isAdmin: state.user?.role === 'admin'
-    };
-
-    return (
-        <AuthContext.Provider value={value}>
-            {children}
-        </AuthContext.Provider>
-    );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {
-    const context = useContext(AuthContext);
-    if (!context) {
-        throw new Error('useAuth must be used within an AuthProvider');
-    }
-    return context;
+  const context = useContext(AuthContext);
+  if (!context) throw new Error('useAuth must be used within an AuthProvider');
+  return context;
 };

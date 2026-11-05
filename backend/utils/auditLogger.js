@@ -1,32 +1,26 @@
 const AuditLog = require('../models/AuditLog');
 
 /**
- * Log an action to the audit log
- * @param {Object} params - The parameters for the log
- * @param {string} params.action - The action performed (e.g., 'LOGIN', 'CREATE_CAR')
- * @param {string} params.userId - The ID of the user involved (optional)
- * @param {string} params.performedBy - Who performed the action ('user', 'admin', 'system')
- * @param {Object} params.meta - Additional metadata (e.g., carId, details)
- * @param {Object} params.req - The express request object (optional, for IP/UserAgent)
+ * Record an action in the audit log. Never throws - logging must not break the request.
+ * @param {object} params
+ * @param {string} params.action      e.g. 'USER_LOGIN', 'CREATE_VEHICLE'
+ * @param {string} [params.userId]    the user the action concerns
+ * @param {'user'|'admin'|'system'} [params.performedBy]
+ * @param {object} [params.meta]      extra details
+ * @param {import('express').Request} [params.req] used for IP / user agent
  */
 const logAction = async ({ action, userId = null, performedBy = 'user', meta = {}, req = null }) => {
   try {
-    const logData = {
+    await AuditLog.create({
       action,
       user: userId,
       performedBy,
-      meta
-    };
-
-    if (req) {
-      logData.ip = req.ip || req.connection.remoteAddress;
-      logData.userAgent = req.headers['user-agent'];
-    }
-
-    await AuditLog.create(logData);
+      meta,
+      ip: req ? req.ip : undefined,
+      userAgent: req ? req.headers['user-agent'] : undefined,
+    });
   } catch (error) {
-    console.error('Audit Logging Failed:', error);
-    // Don't throw error to prevent disrupting the main flow
+    console.error('Audit logging failed:', error.message);
   }
 };
 

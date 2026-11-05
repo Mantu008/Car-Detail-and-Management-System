@@ -1,229 +1,155 @@
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { toast } from 'react-toastify';
 import api from '../../config/api';
+import useFetch from '../../hooks/useFetch';
+import { useConfirm } from '../../context/confirmContext';
+import { Alert, Badge, Button, EmptyState, Field, Icon, Modal, PageHeader, PageLoader, statusTone } from '../../components/ui';
+import { errorMessage, formatDate, formatDateTime, toDateInput } from '../../utils/format';
+
+const emptyForm = { title: '', message: '', type: 'info', expiresAt: '' };
+
+const AnnouncementForm = ({ onClose, onCreated }) => {
+  const [form, setForm] = useState(emptyForm);
+  const [saving, setSaving] = useState(false);
+  const set = (key) => (e) => setForm({ ...form, [key]: e.target.value });
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      const payload = { ...form, title: form.title.trim(), message: form.message.trim() };
+      if (!payload.expiresAt) delete payload.expiresAt;
+      else payload.expiresAt = new Date(`${payload.expiresAt}T23:59:59`).toISOString();
+      const res = await api.post('/api/announcements', payload);
+      toast.success('Announcement published to all users');
+      onCreated(res.data.data);
+    } catch (err) {
+      toast.error(errorMessage(err));
+      setSaving(false);
+    }
+  };
+
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
+  return (
+    <Modal
+      title="New announcement"
+      description="Shown to every user and delivered instantly to anyone online."
+      onClose={onClose}
+      size="lg"
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button type="submit" form="announcement-form" icon="megaphone" loading={saving} disabled={!form.title.trim() || !form.message.trim()}>
+            Publish
+          </Button>
+        </>
+      }
+    >
+      <form id="announcement-form" onSubmit={submit} className="grid gap-4 sm:grid-cols-2">
+        <Field label="Title" htmlFor="atitle" required className="sm:col-span-2">
+          <input id="atitle" className="input" maxLength={100} value={form.title} onChange={set('title')} autoFocus />
+        </Field>
+        <Field label="Type" htmlFor="atype">
+          <select id="atype" className="input" value={form.type} onChange={set('type')}>
+            <option value="info">Information</option>
+            <option value="success">Good news</option>
+            <option value="warning">Warning</option>
+            <option value="error">Critical</option>
+          </select>
+        </Field>
+        <Field label="Expires on" htmlFor="aexp" hint="Optional — hidden after this date.">
+          <input id="aexp" type="date" min={toDateInput(tomorrow)} className="input" value={form.expiresAt} onChange={set('expiresAt')} />
+        </Field>
+        <Field label="Message" htmlFor="amsg" required hint={`${form.message.length}/500`} className="sm:col-span-2">
+          <textarea id="amsg" rows={5} maxLength={500} className="input" value={form.message} onChange={set('message')} />
+        </Field>
+      </form>
+    </Modal>
+  );
+};
 
 const AnnouncementAdmin = () => {
-    const [announcements, setAnnouncements] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [showForm, setShowForm] = useState(false);
-    const [formData, setFormData] = useState({
-        title: '',
-        message: '',
-        type: 'info',
-        expiresAt: ''
-    });
+  const { data: announcements, loading, error, setData } = useFetch('/api/announcements', { initialData: [] });
+  const confirm = useConfirm();
+  const [creating, setCreating] = useState(false);
 
-    useEffect(() => {
-        fetchAnnouncements();
-    }, []);
+  const remove = async (a) => {
+    const ok = await confirm({ title: 'Delete announcement?', message: `"${a.title}" will be removed for all users.`, confirmText: 'Delete', tone: 'danger' });
+    if (!ok) return;
+    try {
+      await api.delete(`/api/announcements/${a._id}`);
+      setData((prev) => prev.filter((x) => x._id !== a._id));
+      toast.success('Announcement deleted');
+    } catch (err) {
+      toast.error(errorMessage(err));
+    }
+  };
 
-    const fetchAnnouncements = async () => {
-        try {
-            const response = await api.get('/api/announcements');
-            setAnnouncements(response.data.data);
-        } catch (error) {
-            toast.error('Failed to fetch announcements');
-        } finally {
-            setLoading(false);
+  if (loading) return <PageLoader />;
+
+  return (
+    <>
+      <PageHeader
+        title="Announcements"
+        description="Broadcast messages to all users."
+        actions={
+          <Button icon="plus" onClick={() => setCreating(true)}>
+            New announcement
+          </Button>
         }
-    };
+      />
+      {error && <Alert tone="red" className="mb-6">{error}</Alert>}
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        try {
-            await api.post('/api/announcements', formData);
-            toast.success('Announcement created successfully');
-            setShowForm(false);
-            setFormData({ title: '', message: '', type: 'info', expiresAt: '' });
-            fetchAnnouncements();
-        } catch (error) {
-            toast.error('Failed to create announcement');
-        }
-    };
-
-    const handleDelete = async (id) => {
-        if (!window.confirm('Are you sure you want to delete this announcement?')) return;
-        try {
-            await api.delete(`/api/announcements/${id}`);
-            toast.success('Announcement deleted');
-            fetchAnnouncements();
-        } catch (error) {
-            toast.error('Failed to delete announcement');
-        }
-    };
-
-    const getTypeColor = (type) => {
-        switch (type) {
-            case 'warning': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-            case 'error': return 'bg-red-100 text-red-800 border-red-200';
-            case 'success': return 'bg-green-100 text-green-800 border-green-200';
-            default: return 'bg-blue-100 text-blue-800 border-blue-200';
-        }
-    };
-
-    return (
-        <div className="space-y-4 sm:space-y-6">
-            {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-                <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Manage Announcements</h1>
-                <button
-                    onClick={() => setShowForm(!showForm)}
-                    className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-200 hover:-translate-y-0.5 touch-target"
-                >
-                    {showForm ? '✕ Cancel' : '+ Create New'}
+      <div className="card overflow-hidden">
+        {announcements.length === 0 ? (
+          <EmptyState
+            icon="megaphone"
+            title="No active announcements"
+            action={
+              <Button icon="plus" onClick={() => setCreating(true)}>
+                Create one
+              </Button>
+            }
+          />
+        ) : (
+          <ul className="divide-y divide-slate-100">
+            {announcements.map((a) => (
+              <li key={a._id} className="flex gap-4 px-5 py-4">
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge tone={statusTone(a.type)} dot>
+                      {a.type}
+                    </Badge>
+                    <span className="text-xs text-slate-500">{formatDateTime(a.createdAt)}</span>
+                    {a.expiresAt && <span className="text-xs text-slate-500">· expires {formatDate(a.expiresAt)}</span>}
+                  </div>
+                  <p className="mt-1.5 font-medium">{a.title}</p>
+                  <p className="mt-0.5 whitespace-pre-line text-sm text-slate-600">{a.message}</p>
+                </div>
+                <button type="button" onClick={() => remove(a)} className="btn btn-danger-ghost btn-icon h-8 w-8 shrink-0" aria-label="Delete announcement">
+                  <Icon name="trash" />
                 </button>
-            </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
 
-            {/* Create Form */}
-            {showForm && (
-                <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-lg border border-gray-100 animate-slide-down">
-                    <h2 className="text-lg sm:text-xl font-bold text-gray-800 mb-4 sm:mb-6">New Announcement</h2>
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Title</label>
-                                <input
-                                    type="text"
-                                    className="w-full px-4 py-2.5 sm:py-2 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all touch-target"
-                                    value={formData.title}
-                                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                                    required
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Type</label>
-                                <select
-                                    className="w-full px-4 py-2.5 sm:py-2 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all touch-target"
-                                    value={formData.type}
-                                    onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                                >
-                                    <option value="info">Info</option>
-                                    <option value="success">Success</option>
-                                    <option value="warning">Warning</option>
-                                    <option value="error">Error</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Message</label>
-                            <textarea
-                                className="w-full px-4 py-2.5 sm:py-2 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all touch-target"
-                                rows="4"
-                                value={formData.message}
-                                onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                                required
-                            ></textarea>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Expires At (Optional)</label>
-                            <input
-                                type="date"
-                                className="w-full px-4 py-2.5 sm:py-2 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all touch-target"
-                                value={formData.expiresAt}
-                                onChange={(e) => setFormData({ ...formData, expiresAt: e.target.value })}
-                            />
-                        </div>
-                        <button
-                            type="submit"
-                            className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-200 touch-target"
-                        >
-                            📢 Publish Announcement
-                        </button>
-                    </form>
-                </div>
-            )}
-
-            {/* Announcements List */}
-            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-                {/* Desktop Table View */}
-                <div className="hidden md:block overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
-                            <tr>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Title</th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Type</th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Message</th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Created At</th>
-                                <th className="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                            {announcements.map((announcement) => (
-                                <tr key={announcement._id} className="hover:bg-blue-50/50 transition-colors">
-                                    <td className="px-6 py-4 font-semibold text-gray-900">{announcement.title}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <span className={`px-3 py-1 inline-flex text-xs font-semibold rounded-full border ${getTypeColor(announcement.type)}`}>
-                                            {announcement.type}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4 text-sm text-gray-600 max-w-xs truncate">{announcement.message}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                                        {new Date(announcement.createdAt).toLocaleDateString()}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-right">
-                                        <button
-                                            onClick={() => handleDelete(announcement._id)}
-                                            className="bg-red-100 hover:bg-red-200 text-red-700 px-4 py-2 rounded-lg font-medium transition-all duration-200 shadow-sm hover:shadow-md"
-                                        >
-                                            Delete
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
-                            {announcements.length === 0 && (
-                                <tr>
-                                    <td colSpan="5" className="px-6 py-8 text-center text-gray-500">
-                                        {loading ? 'Loading announcements...' : 'No active announcements.'}
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-
-                {/* Mobile Card View */}
-                <div className="md:hidden p-4 space-y-4">
-                    {loading ? (
-                        <div className="flex justify-center py-8">
-                            <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-600 border-t-transparent"></div>
-                        </div>
-                    ) : announcements.length === 0 ? (
-                        <div className="text-center py-8 text-gray-500">
-                            No active announcements.
-                        </div>
-                    ) : (
-                        announcements.map((announcement) => (
-                            <div key={announcement._id} className="bg-gradient-to-br from-white to-gray-50 border-2 border-gray-100 rounded-2xl p-4 shadow-md">
-                                <div className="flex items-start justify-between mb-3">
-                                    <h3 className="font-bold text-gray-900 flex-1 pr-2">{announcement.title}</h3>
-                                    <span className={`px-3 py-1 text-xs font-semibold rounded-full border whitespace-nowrap ${getTypeColor(announcement.type)}`}>
-                                        {announcement.type}
-                                    </span>
-                                </div>
-                                <p className="text-sm text-gray-700 mb-3 line-clamp-3">{announcement.message}</p>
-                                <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
-                                    <span>Created: {new Date(announcement.createdAt).toLocaleDateString()}</span>
-                                </div>
-                                <button
-                                    onClick={() => handleDelete(announcement._id)}
-                                    className="w-full bg-red-100 hover:bg-red-200 text-red-700 px-4 py-2.5 rounded-xl font-medium transition-all duration-200 shadow-sm hover:shadow-md touch-target"
-                                >
-                                    🗑️ Delete Announcement
-                                </button>
-                            </div>
-                        ))
-                    )}
-                </div>
-            </div>
-
-            {/* Results Count */}
-            {!loading && announcements.length > 0 && (
-                <div className="text-center text-sm text-gray-600">
-                    {announcements.length} active announcement{announcements.length !== 1 ? 's' : ''}
-                </div>
-            )}
-        </div>
-    );
+      {creating && (
+        <AnnouncementForm
+          onClose={() => setCreating(false)}
+          onCreated={(a) => {
+            setData((prev) => [a, ...prev]);
+            setCreating(false);
+          }}
+        />
+      )}
+    </>
+  );
 };
 
 export default AnnouncementAdmin;

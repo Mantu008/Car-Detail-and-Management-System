@@ -1,234 +1,127 @@
-import React, { useState, useEffect } from 'react';
-import { Bar, Pie, Line, Doughnut } from 'react-chartjs-2';
-import {
-    Chart as ChartJS,
-    CategoryScale,
-    LinearScale,
-    BarElement,
-    Title,
-    Tooltip,
-    Legend,
-    ArcElement,
-    PointElement,
-    LineElement,
-    Filler
-} from 'chart.js';
-import api from '../../config/api';
+import { Link } from 'react-router-dom';
+import { Bar, Doughnut, Line } from 'react-chartjs-2';
+import { PALETTE, barOptions, doughnutOptions } from '../../lib/chart';
+import useFetch from '../../hooks/useFetch';
+import { Alert, Button, EmptyState, PageHeader, PageLoader, StatCard } from '../../components/ui';
+import { formatCurrency, formatCurrencyCompact } from '../../utils/format';
 
-ChartJS.register(
-    CategoryScale,
-    LinearScale,
-    BarElement,
-    Title,
-    Tooltip,
-    Legend,
-    ArcElement,
-    PointElement,
-    LineElement,
-    Filler
+const Panel = ({ title, subtitle, children, className = '' }) => (
+  <section className={`card ${className}`}>
+    <div className="card-header">
+      <div>
+        <h2 className="card-title">{title}</h2>
+        {subtitle && <p className="mt-0.5 text-sm text-slate-500">{subtitle}</p>}
+      </div>
+    </div>
+    <div className="card-body">
+      <div className="h-64">{children}</div>
+    </div>
+  </section>
 );
 
 const AdminDashboard = () => {
-    const [stats, setStats] = useState(null);
-    const [loading, setLoading] = useState(true);
+  const { data: stats, loading, error, reload } = useFetch('/api/admin/dashboard');
 
-    useEffect(() => {
-        fetchStats();
-    }, []);
-
-    const fetchStats = async () => {
-        try {
-            const response = await api.get('/api/admin/dashboard');
-            setStats(response.data.data);
-        } catch (error) {
-            console.error('Error fetching stats:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    if (loading) return (
-        <div className="flex justify-center items-center h-full">
-            <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-600"></div>
-        </div>
-    );
-
-    if (!stats) return <div className="text-center text-red-500">Error loading stats</div>;
-
-    // Common Chart Options for "Modern" Look
-    const commonOptions = {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: {
-                position: 'bottom',
-                labels: {
-                    usePointStyle: true,
-                    padding: 20,
-                    font: { size: 12 }
-                }
-            },
-            tooltip: {
-                backgroundColor: 'rgba(17, 24, 39, 0.9)',
-                titleFont: { size: 13 },
-                bodyFont: { size: 13 },
-                padding: 10,
-                cornerRadius: 8,
-                displayColors: true
-            }
-        }
-    };
-
-    // 1. Pie Chart: Vehicle Types (3D-like colors)
-    const vehicleTypeData = {
-        labels: stats.vehicleTypes.map(t => t._id),
-        datasets: [{
-            data: stats.vehicleTypes.map(t => t.count),
-            backgroundColor: [
-                'rgba(59, 130, 246, 0.8)', // Blue
-                'rgba(16, 185, 129, 0.8)', // Green
-                'rgba(245, 158, 11, 0.8)', // Yellow
-                'rgba(239, 68, 68, 0.8)',  // Red
-                'rgba(139, 92, 246, 0.8)'  // Purple
-            ],
-            borderColor: [
-                '#ffffff', '#ffffff', '#ffffff', '#ffffff', '#ffffff'
-            ],
-            borderWidth: 2,
-            hoverOffset: 20 // Pop out effect
-        }]
-    };
-
-    // 2. Line Chart: User Growth (Smooth, Gradient Fill)
-    const monthlySignupsData = {
-        labels: stats.monthlySignups.map(m => `Month ${m._id}`),
-        datasets: [{
-            label: 'New Users',
-            data: stats.monthlySignups.map(m => m.count),
-            borderColor: '#3B82F6',
-            backgroundColor: (context) => {
-                const ctx = context.chart.ctx;
-                const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-                gradient.addColorStop(0, 'rgba(59, 130, 246, 0.5)');
-                gradient.addColorStop(1, 'rgba(59, 130, 246, 0.0)');
-                return gradient;
-            },
-            fill: true,
-            tension: 0.4, // Smooth curves
-            pointRadius: 4,
-            pointHoverRadius: 6
-        }]
-    };
-
-    // 3. Doughnut Chart: User Status (Modern Ring)
-    const userStatusData = {
-        labels: ['Active', 'Blocked'],
-        datasets: [{
-            data: [stats.userStatus.active, stats.userStatus.blocked],
-            backgroundColor: ['#10B981', '#EF4444'],
-            borderWidth: 0,
-            hoverOffset: 10,
-            cutout: '75%' // Thinner ring
-        }]
-    };
-
-    // 4. Bar Chart: Services & Revenue (New!)
-    const serviceBarData = {
-        labels: stats.monthlyServices?.map(m => `Month ${m._id}`) || [],
-        datasets: [
-            {
-                label: 'Services Count',
-                data: stats.monthlyServices?.map(m => m.count) || [],
-                backgroundColor: 'rgba(99, 102, 241, 0.8)', // Indigo
-                borderRadius: 6,
-            },
-            {
-                label: 'Revenue (x100)', // Scaled for visibility if needed, or just use separate axis
-                data: stats.monthlyServices?.map(m => m.revenue / 100) || [], // Example scaling
-                backgroundColor: 'rgba(16, 185, 129, 0.8)', // Emerald
-                borderRadius: 6,
-            }
-        ]
-    };
-
+  if (loading) return <PageLoader />;
+  if (error || !stats) {
     return (
-        <div className="space-y-6 sm:space-y-8">
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Dashboard Overview</h1>
-
-            {/* Stats Cards with Gradients */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-                <div className="bg-gradient-to-br from-blue-500 to-blue-600 p-6 rounded-2xl shadow-lg text-white transform hover:scale-105 transition-transform duration-300">
-                    <div className="text-blue-100 text-sm font-medium uppercase tracking-wider">Total Users</div>
-                    <div className="mt-2 text-3xl sm:text-4xl font-bold">{stats.counts.users}</div>
-                    <div className="mt-1 text-blue-200 text-sm">Registered accounts</div>
-                </div>
-                <div className="bg-gradient-to-br from-purple-500 to-purple-600 p-6 rounded-2xl shadow-lg text-white transform hover:scale-105 transition-transform duration-300">
-                    <div className="text-purple-100 text-sm font-medium uppercase tracking-wider">Total Vehicles</div>
-                    <div className="mt-2 text-3xl sm:text-4xl font-bold">{stats.counts.cars}</div>
-                    <div className="mt-1 text-purple-200 text-sm">Managed vehicles</div>
-                </div>
-                <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 p-6 rounded-2xl shadow-lg text-white transform hover:scale-105 transition-transform duration-300 sm:col-span-2 lg:col-span-1">
-                    <div className="text-emerald-100 text-sm font-medium uppercase tracking-wider">Total Services</div>
-                    <div className="mt-2 text-3xl sm:text-4xl font-bold">{stats.counts.services}</div>
-                    <div className="mt-1 text-emerald-200 text-sm">Completed services</div>
-                </div>
-            </div>
-
-            {/* Charts Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
-                {/* Bar Chart */}
-                <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-md border border-gray-100">
-                    <h3 className="text-base sm:text-lg font-bold text-gray-800 mb-4 sm:mb-6 flex items-center">
-                        <span className="bg-indigo-100 text-indigo-600 p-2 rounded-lg mr-3 text-lg sm:text-xl">📊</span>
-                        Service Activity
-                    </h3>
-                    <div className="h-64 sm:h-72">
-                        <Bar data={serviceBarData} options={commonOptions} />
-                    </div>
-                </div>
-
-                {/* Line Chart */}
-                <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-md border border-gray-100">
-                    <h3 className="text-base sm:text-lg font-bold text-gray-800 mb-4 sm:mb-6 flex items-center">
-                        <span className="bg-blue-100 text-blue-600 p-2 rounded-lg mr-3 text-lg sm:text-xl">📈</span>
-                        User Growth
-                    </h3>
-                    <div className="h-64 sm:h-72">
-                        <Line data={monthlySignupsData} options={commonOptions} />
-                    </div>
-                </div>
-
-                {/* Pie Chart */}
-                <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-md border border-gray-100">
-                    <h3 className="text-base sm:text-lg font-bold text-gray-800 mb-4 sm:mb-6 flex items-center">
-                        <span className="bg-orange-100 text-orange-600 p-2 rounded-lg mr-3 text-lg sm:text-xl">🍰</span>
-                        Vehicle Types
-                    </h3>
-                    <div className="h-64 sm:h-72 flex justify-center relative">
-                        <Pie data={vehicleTypeData} options={commonOptions} />
-                    </div>
-                </div>
-
-                {/* Doughnut Chart */}
-                <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-md border border-gray-100">
-                    <h3 className="text-base sm:text-lg font-bold text-gray-800 mb-4 sm:mb-6 flex items-center">
-                        <span className="bg-red-100 text-red-600 p-2 rounded-lg mr-3 text-lg sm:text-xl">🍩</span>
-                        User Status
-                    </h3>
-                    <div className="h-64 sm:h-72 flex justify-center relative">
-                        <Doughnut data={userStatusData} options={commonOptions} />
-                        {/* Center Text Overlay */}
-                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                            <div className="text-center mt-8">
-                                <div className="text-2xl sm:text-3xl font-bold text-gray-800">{stats.counts.users}</div>
-                                <div className="text-xs text-gray-500 uppercase">Total</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+      <Alert tone="red" title="Could not load dashboard">
+        {error}{' '}
+        <button type="button" className="underline" onClick={reload}>
+          Retry
+        </button>
+      </Alert>
     );
+  }
+
+  const { counts, userStatus, vehicleTypes, monthlySignups, monthlyServices } = stats;
+
+  return (
+    <>
+      <PageHeader
+        title="Dashboard"
+        description="System-wide activity over the last six months."
+        actions={<Button variant="secondary" icon="refresh" onClick={reload}>Refresh</Button>}
+      />
+
+      {(counts.flaggedCars > 0 || counts.openTickets > 0) && (
+        <div className="mb-6 grid gap-3 sm:grid-cols-2">
+          {counts.flaggedCars > 0 && (
+            <Alert tone="amber" title={`${counts.flaggedCars} vehicle${counts.flaggedCars === 1 ? '' : 's'} flagged`}>
+              <Link to="/admin/suspicious" className="underline">Review flagged vehicles</Link>
+            </Alert>
+          )}
+          {counts.openTickets > 0 && (
+            <Alert tone="blue" title={`${counts.openTickets} open support ticket${counts.openTickets === 1 ? '' : 's'}`}>
+              <Link to="/admin/support" className="underline">Go to support</Link>
+            </Alert>
+          )}
+        </div>
+      )}
+
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <StatCard label="Users" value={counts.users} hint={`${userStatus.blocked} blocked`} icon="users" tone="blue" />
+        <StatCard label="Vehicles" value={counts.cars} hint={`${counts.flaggedCars} flagged`} icon="car" />
+        <StatCard label="Service records" value={counts.services} icon="wrench" tone="amber" />
+        <StatCard label="Total service spend" value={formatCurrencyCompact(counts.serviceSpend)} hint={formatCurrency(counts.serviceSpend)} icon="wallet" tone="green" />
+      </div>
+
+      <div className="mt-6 grid gap-6 lg:grid-cols-3">
+        <Panel title="Service activity" subtitle="Records logged per month" className="lg:col-span-2">
+          <Bar
+            data={{
+              labels: monthlyServices.map((m) => m.label),
+              datasets: [{ label: 'Services', data: monthlyServices.map((m) => m.count), backgroundColor: PALETTE[0], borderRadius: 4, maxBarThickness: 40 }],
+            }}
+            options={barOptions()}
+          />
+        </Panel>
+
+        <Panel title="Vehicle types">
+          {vehicleTypes.length ? (
+            <Doughnut
+              data={{
+                labels: vehicleTypes.map((t) => t.type),
+                datasets: [{ data: vehicleTypes.map((t) => t.count), backgroundColor: PALETTE, borderWidth: 0 }],
+              }}
+              options={doughnutOptions}
+            />
+          ) : (
+            <EmptyState icon="car" title="No vehicles yet" />
+          )}
+        </Panel>
+
+        <Panel title="Service spend" subtitle="Total cost of services per month" className="lg:col-span-2">
+          <Bar
+            data={{
+              labels: monthlyServices.map((m) => m.label),
+              datasets: [{ data: monthlyServices.map((m) => m.revenue), backgroundColor: PALETTE[1], borderRadius: 4, maxBarThickness: 40 }],
+            }}
+            options={barOptions({ currency: true })}
+          />
+        </Panel>
+
+        <Panel title="New users" subtitle="Sign-ups per month">
+          <Line
+            data={{
+              labels: monthlySignups.map((m) => m.label),
+              datasets: [
+                {
+                  data: monthlySignups.map((m) => m.count),
+                  borderColor: PALETTE[0],
+                  backgroundColor: 'rgba(37, 99, 235, 0.08)',
+                  fill: true,
+                  tension: 0.3,
+                  pointRadius: 3,
+                },
+              ],
+            }}
+            options={barOptions()}
+          />
+        </Panel>
+      </div>
+    </>
+  );
 };
 
 export default AdminDashboard;

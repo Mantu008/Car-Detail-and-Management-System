@@ -8,6 +8,9 @@ const Car = require("./models/Car");
 const Service = require("./models/Service");
 const Announcement = require("./models/Announcement");
 const SupportTicket = require("./models/SupportTicket");
+const FuelEntry = require("./models/FuelEntry");
+const Notification = require("./models/Notification");
+const AuditLog = require("./models/AuditLog");
 
 // Connect to MongoDB
 const connectDB = async () => {
@@ -62,7 +65,7 @@ const sampleCars = [
         brand: "Toyota",
         model: "Camry",
         year: 2020,
-        price: 2075000, // $25,000 × 83
+        price: 2075000,
         color: "Silver",
         mileage: 35000,
         description:
@@ -73,7 +76,7 @@ const sampleCars = [
         brand: "Honda",
         model: "Civic",
         year: 2019,
-        price: 1826000, // $22,000 × 83
+        price: 1826000,
         color: "Blue",
         mileage: 42000,
         description: "Reliable compact car perfect for city driving.",
@@ -83,7 +86,7 @@ const sampleCars = [
         brand: "BMW",
         model: "X5",
         year: 2021,
-        price: 4565000, // $55,000 × 83
+        price: 4565000,
         color: "Black",
         mileage: 18000,
         description:
@@ -94,7 +97,7 @@ const sampleCars = [
         brand: "Ford",
         model: "F-150",
         year: 2020,
-        price: 3735000, // $45,000 × 83
+        price: 3735000,
         color: "White",
         mileage: 28000,
         description: "Powerful pickup truck ideal for work and recreation.",
@@ -104,7 +107,7 @@ const sampleCars = [
         brand: "Tesla",
         model: "Model 3",
         year: 2022,
-        price: 3984000, // $48,000 × 83
+        price: 3984000,
         color: "Red",
         mileage: 12000,
         description:
@@ -115,7 +118,7 @@ const sampleCars = [
         brand: "Mercedes-Benz",
         model: "C-Class",
         year: 2021,
-        price: 3486000, // $42,000 × 83
+        price: 3486000,
         color: "Gray",
         mileage: 15000,
         description: "Luxury sedan with premium interior and smooth ride.",
@@ -125,7 +128,7 @@ const sampleCars = [
         brand: "Nissan",
         model: "Altima",
         year: 2019,
-        price: 1577000, // $19,000 × 83
+        price: 1577000,
         color: "White",
         mileage: 38000,
         description: "Comfortable midsize sedan with good reliability.",
@@ -135,7 +138,7 @@ const sampleCars = [
         brand: "Audi",
         model: "A4",
         year: 2020,
-        price: 3154000, // $38,000 × 83
+        price: 3154000,
         color: "Black",
         mileage: 22000,
         description: "German engineering meets luxury and performance.",
@@ -146,61 +149,61 @@ const sampleCars = [
 const sampleServices = [
     {
         description: "Regular oil change and filter replacement",
-        cost: 6225, // $75 × 83
+        cost: 6225,
         serviceType: "maintenance",
         serviceProvider: "Quick Lube Express",
     },
     {
         description: "Brake pad replacement and rotor resurfacing",
-        cost: 29050, // $350 × 83
+        cost: 29050,
         serviceType: "repair",
         serviceProvider: "Auto Repair Center",
     },
     {
         description: "Annual safety inspection",
-        cost: 3735, // $45 × 83
+        cost: 3735,
         serviceType: "inspection",
         serviceProvider: "State Inspection Station",
     },
     {
         description: "Transmission fluid change",
-        cost: 9960, // $120 × 83
+        cost: 9960,
         serviceType: "maintenance",
         serviceProvider: "Transmission Specialists",
     },
     {
         description: "Air conditioning system repair",
-        cost: 23240, // $280 × 83
+        cost: 23240,
         serviceType: "repair",
         serviceProvider: "AC Pro Services",
     },
     {
         description: "Tire rotation and alignment",
-        cost: 7055, // $85 × 83
+        cost: 7055,
         serviceType: "maintenance",
         serviceProvider: "Tire World",
     },
     {
         description: "Battery replacement",
-        cost: 12450, // $150 × 83
+        cost: 12450,
         serviceType: "repair",
         serviceProvider: "Battery Plus",
     },
     {
         description: "Spark plug replacement",
-        cost: 7885, // $95 × 83
+        cost: 7885,
         serviceType: "maintenance",
         serviceProvider: "Engine Masters",
     },
     {
         description: "Windshield replacement",
-        cost: 33200, // $400 × 83
+        cost: 33200,
         serviceType: "repair",
         serviceProvider: "Glass Doctor",
     },
     {
         description: "Emissions testing",
-        cost: 2075, // $25 × 83
+        cost: 2075,
         serviceType: "inspection",
         serviceProvider: "Emissions Testing Center",
     },
@@ -215,6 +218,9 @@ const seedDatabase = async () => {
         await Service.deleteMany({});
         await Announcement.deleteMany({});
         await SupportTicket.deleteMany({});
+        await FuelEntry.deleteMany({});
+        await Notification.deleteMany({});
+        await AuditLog.deleteMany({});
 
         // Create users
         console.log("Creating users...");
@@ -317,15 +323,15 @@ const seedDatabase = async () => {
             console.log(`Created support ticket: ${ticket.subject}`);
         }
 
-        console.log("\n🎉 Database seeded successfully!");
-        console.log(`\n📊 Summary:`);
+        console.log("\nDatabase seeded successfully.");
+        console.log(`\nSummary:`);
         console.log(`- Users: ${users.length}`);
         console.log(`- Cars: ${cars.length}`);
         console.log(`- Services: ${services.length}`);
-        console.log(`\n🔑 Admin Login Credentials:`);
+        console.log(`\nAdmin login:`);
         console.log(`Email: john@example.com`);
         console.log(`Password: password123`);
-        console.log(`\n👥 User Login Credentials:`);
+        console.log(`\nUser login:`);
         console.log(`Email: alice@example.com`);
         console.log(`Password: password123`);
     } catch (error) {

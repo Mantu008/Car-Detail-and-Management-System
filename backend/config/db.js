@@ -1,16 +1,14 @@
 const mongoose = require('mongoose');
 
 const connectDB = async () => {
+  const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017/car-management-system';
   try {
-    console.log(process.env.MONGODB_URI);
-    const conn = await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/car-management-system');
-    console.log(`MongoDB Connected: ${conn.connection.host}`);
+    const conn = await mongoose.connect(uri);
+    console.log(`MongoDB connected: ${conn.connection.host}`);
   } catch (error) {
     console.error('Database connection error:', error.message);
-    if (process.env.NODE_ENV !== 'production') {
-      process.exit(1);
-    }
-    throw error; // Re-throw to let the caller handle it
+    // Locally there's nothing useful to do without a database; on serverless let the platform retry.
+    if (process.env.VERCEL !== '1') process.exit(1);
   }
 };
 

@@ -1,151 +1,94 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { lazy, Suspense } from 'react';
+import { BrowserRouter, Navigate, Route, Routes, useParams } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 import { AuthProvider } from './context/authContext';
 import { NotificationProvider } from './context/notificationContext';
-import MainLayout from './components/MainLayout';
-import ProtectedRoute from './components/ProtectedRoute';
-import LoadingOverlay from './components/LoadingOverlay';
+import { ConfirmProvider } from './context/confirmContext';
+import MainLayout from './components/layout/MainLayout';
+import ProtectedRoute, { GuestRoute } from './components/ProtectedRoute';
+import ScrollToTop from './components/layout/ScrollToTop';
+import { PageLoader } from './components/ui';
 
-// Pages
 import Home from './pages/Home';
-import LoginForm from './components/LoginForm';
-import RegisterForm from './components/RegisterForm';
-import Cars from './pages/Cars';
+import Login from './pages/auth/Login';
+import Register from './pages/auth/Register';
 import MyCars from './pages/MyCars';
-import AddCar from './pages/AddCar';
-import EditCar from './pages/EditCar';
 import CarDetail from './pages/CarDetail';
-import FeaturesDashboard from './pages/FeaturesDashboard';
+import { AddCar, EditCar } from './pages/CarEditor';
+import NotFound from './pages/NotFound';
 
-// Admin Pages
-import AdminLayout from './pages/admin/AdminLayout';
-import AdminDashboard from './pages/admin/AdminDashboard';
-import UserManagement from './pages/admin/UserManagement';
-import SuspiciousActivity from './pages/admin/SuspiciousActivity';
-import AuditLogs from './pages/admin/AuditLogs';
-import SupportAdmin from './pages/admin/SupportAdmin';
-import AnnouncementAdmin from './pages/admin/AnnouncementAdmin';
+// Heavier / less-visited pages are split into their own chunks.
+const Tools = lazy(() => import('./pages/Tools'));
+const Settings = lazy(() => import('./pages/Settings'));
+const UserAnalytics = lazy(() => import('./pages/user/UserAnalytics'));
+const Support = lazy(() => import('./pages/user/Support'));
+const Notifications = lazy(() => import('./pages/user/Notifications'));
 
-// User Pages
-import UserAnalytics from './pages/user/UserAnalytics';
-import Support from './pages/user/Support';
-import Notifications from './pages/user/Notifications';
+const AdminLayout = lazy(() => import('./pages/admin/AdminLayout'));
+const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
+const AdminVehicles = lazy(() => import('./pages/admin/AdminVehicles'));
+const UserManagement = lazy(() => import('./pages/admin/UserManagement'));
+const SuspiciousActivity = lazy(() => import('./pages/admin/SuspiciousActivity'));
+const AuditLogs = lazy(() => import('./pages/admin/AuditLogs'));
+const SupportAdmin = lazy(() => import('./pages/admin/SupportAdmin'));
+const AnnouncementAdmin = lazy(() => import('./pages/admin/AnnouncementAdmin'));
+
+// Keep old URLs working.
+const LegacyEditRedirect = () => <Navigate to={`/cars/${useParams().id}/edit`} replace />;
+
+const user = (element) => <ProtectedRoute>{element}</ProtectedRoute>;
 
 function App() {
-    return (
-        <AuthProvider>
-            <NotificationProvider>
-                <Router>
-                    <div className="App">
-                        <LoadingOverlay />
-                        <main>
-                            <Routes>
-                                {/* Admin Routes (No Navbar) */}
-                                <Route
-                                    path="/admin"
-                                    element={
-                                        <ProtectedRoute adminOnly={true}>
-                                            <AdminLayout />
-                                        </ProtectedRoute>
-                                    }
-                                >
-                                    <Route index element={<Navigate to="dashboard" replace />} />
-                                    <Route path="dashboard" element={<AdminDashboard />} />
-                                    <Route path="users" element={<UserManagement />} />
-                                    <Route path="suspicious" element={<SuspiciousActivity />} />
-                                    <Route path="logs" element={<AuditLogs />} />
-                                    <Route path="support" element={<SupportAdmin />} />
-                                    <Route path="announcements" element={<AnnouncementAdmin />} />
-                                </Route>
+  return (
+    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <AuthProvider>
+        <NotificationProvider>
+          <ConfirmProvider>
+            <ScrollToTop />
+            <Suspense fallback={<PageLoader className="min-h-screen" />}>
+              <Routes>
+                <Route path="/login" element={<GuestRoute><Login /></GuestRoute>} />
+                <Route path="/register" element={<GuestRoute><Register /></GuestRoute>} />
 
-                                {/* User Routes with Navbar */}
-                                <Route element={<MainLayout />}>
-                                    <Route path="/" element={<Home />} />
-                                    <Route path="/login" element={<LoginForm />} />
-                                    <Route path="/register" element={<RegisterForm />} />
-                                    <Route path="/cars" element={<Cars />} />
-                                    <Route
-                                        path="/my-cars"
-                                        element={
-                                            <ProtectedRoute>
-                                                <MyCars />
-                                            </ProtectedRoute>
-                                        }
-                                    />
-                                    <Route
-                                        path="/add-car"
-                                        element={
-                                            <ProtectedRoute>
-                                                <AddCar />
-                                            </ProtectedRoute>
-                                        }
-                                    />
-                                    <Route
-                                        path="/edit-car/:id"
-                                        element={
-                                            <ProtectedRoute>
-                                                <EditCar />
-                                            </ProtectedRoute>
-                                        }
-                                    />
-                                    <Route path="/cars/:id" element={<CarDetail />} />
-                                    <Route
-                                        path="/features"
-                                        element={
-                                            <ProtectedRoute>
-                                                <FeaturesDashboard />
-                                            </ProtectedRoute>
-                                        }
-                                    />
+                <Route path="/admin" element={<ProtectedRoute adminOnly><AdminLayout /></ProtectedRoute>}>
+                  <Route index element={<Navigate to="dashboard" replace />} />
+                  <Route path="dashboard" element={<AdminDashboard />} />
+                  <Route path="vehicles" element={<AdminVehicles />} />
+                  <Route path="users" element={<UserManagement />} />
+                  <Route path="suspicious" element={<SuspiciousActivity />} />
+                  <Route path="support" element={<SupportAdmin />} />
+                  <Route path="announcements" element={<AnnouncementAdmin />} />
+                  <Route path="logs" element={<AuditLogs />} />
+                </Route>
 
-                                    {/* User Routes */}
-                                    <Route
-                                        path="/analytics"
-                                        element={
-                                            <ProtectedRoute>
-                                                <UserAnalytics />
-                                            </ProtectedRoute>
-                                        }
-                                    />
-                                    <Route
-                                        path="/support"
-                                        element={
-                                            <ProtectedRoute>
-                                                <Support />
-                                            </ProtectedRoute>
-                                        }
-                                    />
-                                    <Route
-                                        path="/notifications"
-                                        element={
-                                            <ProtectedRoute>
-                                                <Notifications />
-                                            </ProtectedRoute>
-                                        }
-                                    />
-                                </Route>
-                            </Routes>
-                        </main>
+                <Route element={<MainLayout />}>
+                  <Route path="/" element={<Home />} />
+                  <Route path="/my-cars" element={user(<MyCars />)} />
+                  <Route path="/cars/new" element={user(<AddCar />)} />
+                  <Route path="/cars/:id/edit" element={user(<EditCar />)} />
+                  <Route path="/cars/:id" element={<CarDetail />} />
+                  <Route path="/tools" element={user(<Tools />)} />
+                  <Route path="/analytics" element={user(<UserAnalytics />)} />
+                  <Route path="/support" element={user(<Support />)} />
+                  <Route path="/notifications" element={user(<Notifications />)} />
+                  <Route path="/settings" element={user(<Settings />)} />
 
-                        <ToastContainer
-                            position="top-right"
-                            autoClose={3000}
-                            hideProgressBar={false}
-                            newestOnTop={false}
-                            closeOnClick
-                            rtl={false}
-                            pauseOnFocusLoss
-                            draggable
-                            pauseOnHover
-                        />
-                    </div>
-                </Router>
-            </NotificationProvider>
-        </AuthProvider >
-    );
+                  <Route path="/cars" element={<Navigate to="/admin/vehicles" replace />} />
+                  <Route path="/add-car" element={<Navigate to="/cars/new" replace />} />
+                  <Route path="/edit-car/:id" element={<LegacyEditRedirect />} />
+                  <Route path="/features" element={<Navigate to="/tools" replace />} />
+                  <Route path="*" element={<NotFound />} />
+                </Route>
+              </Routes>
+            </Suspense>
+            <ToastContainer position="bottom-right" autoClose={3500} hideProgressBar newestOnTop closeOnClick pauseOnHover theme="light" />
+          </ConfirmProvider>
+        </NotificationProvider>
+      </AuthProvider>
+    </BrowserRouter>
+  );
 }
 
 export default App;

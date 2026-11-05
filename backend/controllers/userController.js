@@ -1,208 +1,110 @@
 const User = require('../models/User');
-const jwt = require('jsonwebtoken');
+const { asyncHandler, HttpError } = require('../middleware/errorMiddleware');
+const { generateToken, generateTwoFactorToken } = require('../utils/token');
 const { logAction } = require('../utils/auditLogger');
 
-// Generate JWT Token
-const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-this-in-production', {
-    expiresIn: '30d',
-  });
-};
+// Public shape of a user returned to the client.
+const serializeUser = (user) => ({
+  _id: user._id,
+  name: user.name,
+  email: user.email,
+  role: user.role,
+  status: user.status,
+  isTwoFactorEnabled: user.isTwoFactorEnabled,
+  createdAt: user.createdAt,
+});
 
 // @desc    Register new user
 // @route   POST /api/users/register
 // @access  Public
-const registerUser = async (req, res) => {
-  try {
-    const { name, email, password } = req.body;
+const registerUser = asyncHandler(async (req, res) => {
+  const { name, email, password } = req.body;
 
-    // Check if user exists
-    const userExists = await User.findOne({ email });
-    if (userExists) {
-      return res.status(400).json({
-        success: false,
-        message: 'User already exists with this email'
-      });
-    }
-
-    // Create user
-    const user = await User.create({
-      name,
-      email,
-      password
-    });
-
-    if (user) {
-      res.status(201).json({
-        success: true,
-        message: 'User registered successfully',
-        data: {
-          _id: user._id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-          token: generateToken(user._id)
-        }
-      });
-
-      // Log registration
-      await logAction({
-        action: 'USER_REGISTER',
-        userId: user._id,
-        performedBy: 'user',
-        req,
-        meta: { name: user.name, email: user.email }
-      });
-    } else {
-      res.status(400).json({
-        success: false,
-        message: 'Invalid user data'
-      });
-    }
-  } catch (error) {
-    console.error('Registration error:', error.message);
-    res.status(500).json({
-      success: false,
-      message: 'Server error during registration'
-    });
+  if (!name || !email || !password) {
+    throw new HttpError(400, 'Name, email and password are required');
   }
-};
 
-// @desc    Authenticate user & get token
+  const exists = await User.findOne({ email: String(email).toLowerCase().trim() });
+  if (exists) throw new HttpError(409, 'An account with this email already exists');
+
+  // Role is never taken from the request body - new accounts are always regular users.
+  const user = await User.create({ name, email, password });
+
+  await logAction({ action: 'USER_REGISTER', userId: user._id, req, meta: { email: user.email } });
+
+  res.status(201).json({
+    success: true,
+    message: 'Account created',
+    data: { user: serializeUser(user), token: generateToken(user._id) },
+  });
+});
+
+// @desc    Log in. Returns a session token, or a short-lived 2FA token when 2FA is on.
 // @route   POST /api/users/login
 // @access  Public
-const loginUser = async (req, res) => {
-  try {
-    const { email, password } = req.body;
+const loginUser = asyncHandler(async (req, res) => {
+  const { email, password } = req.body;
+  if (!email || !password) throw new HttpError(400, 'Email and password are required');
 
-    // Check for user email
-    const user = await User.findOne({ email });
+  const user = await User.findOne({ email: String(email).toLowerCase().trim() });
+  if (!user || !(await user.comparePassword(password))) {
+    await logAction({ action: 'LOGIN_FAILED', performedBy: 'system', req, meta: { email } });
+    throw new HttpError(401, 'Invalid email or password');
+  }
 
-    if (user && (await user.comparePassword(password))) {
-      res.json({
-        success: true,
-        message: 'Login successful',
-        data: {
-          _id: user._id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-          token: generateToken(user._id)
-        }
-      });
+  if (user.status === 'blocked') {
+    throw new HttpError(403, 'Your account has been blocked. Please contact support.');
+  }
 
-      // Log login
-      await logAction({
-        action: 'USER_LOGIN',
-        userId: user._id,
-        performedBy: 'user',
-        req,
-        meta: { email: user.email }
-      });
-    } else {
-      res.status(401).json({
-        success: false,
-        message: 'Invalid email or password'
-      });
-    }
-  } catch (error) {
-    console.error('Login error:', error.message);
-    res.status(500).json({
-      success: false,
-      message: 'Server error during login'
+  if (user.isTwoFactorEnabled) {
+    return res.json({
+      success: true,
+      data: { requires2FA: true, tempToken: generateTwoFactorToken(user._id) },
     });
   }
-};
 
-// @desc    Get user profile
+  await logAction({ action: 'USER_LOGIN', userId: user._id, req });
+
+  return res.json({
+    success: true,
+    message: 'Login successful',
+    data: { user: serializeUser(user), token: generateToken(user._id) },
+  });
+});
+
+// @desc    Get the logged-in user's profile
 // @route   GET /api/users/profile
 // @access  Private
-const getUserProfile = async (req, res) => {
-  try {
-    const user = await User.findById(req.user._id).select('-password');
-    
-    if (user) {
-      res.json({
-        success: true,
-        data: user
-      });
-    } else {
-      res.status(404).json({
-        success: false,
-        message: 'User not found'
-      });
-    }
-  } catch (error) {
-    console.error('Get profile error:', error.message);
-    res.status(500).json({
-      success: false,
-      message: 'Server error'
-    });
-  }
-};
+const getUserProfile = asyncHandler(async (req, res) => {
+  res.json({ success: true, data: serializeUser(req.user) });
+});
 
-// @desc    Update user profile
+// @desc    Update name / email / password
 // @route   PUT /api/users/profile
 // @access  Private
-const updateUserProfile = async (req, res) => {
-  try {
-    const user = await User.findById(req.user._id);
+const updateUserProfile = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user._id);
+  const { name, email, currentPassword, newPassword } = req.body;
 
-    if (user) {
-      user.name = req.body.name || user.name;
-      user.email = req.body.email || user.email;
+  if (name) user.name = name;
 
-      const updatedUser = await user.save();
+  if (email && email.toLowerCase().trim() !== user.email) {
+    const taken = await User.findOne({ email: email.toLowerCase().trim() });
+    if (taken) throw new HttpError(409, 'That email is already in use');
+    user.email = email;
+  }
 
-      res.json({
-        success: true,
-        message: 'Profile updated successfully',
-        data: {
-          _id: updatedUser._id,
-          name: updatedUser.name,
-          email: updatedUser.email,
-          role: updatedUser.role
-        }
-      });
-    } else {
-      res.status(404).json({
-        success: false,
-        message: 'User not found'
-      });
+  if (newPassword) {
+    if (!currentPassword || !(await user.comparePassword(currentPassword))) {
+      throw new HttpError(400, 'Current password is incorrect');
     }
-  } catch (error) {
-    console.error('Update profile error:', error.message);
-    res.status(500).json({
-      success: false,
-      message: 'Server error'
-    });
+    user.password = newPassword;
   }
-};
 
-// @desc    Get all users (Admin only)
-// @route   GET /api/users
-// @access  Private/Admin
-const getUsers = async (req, res) => {
-  try {
-    const users = await User.find({}).select('-password');
-    res.json({
-      success: true,
-      count: users.length,
-      data: users
-    });
-  } catch (error) {
-    console.error('Get users error:', error.message);
-    res.status(500).json({
-      success: false,
-      message: 'Server error'
-    });
-  }
-};
+  await user.save();
+  await logAction({ action: 'UPDATE_PROFILE', userId: user._id, req, meta: { passwordChanged: !!newPassword } });
 
-module.exports = {
-  registerUser,
-  loginUser,
-  getUserProfile,
-  updateUserProfile,
-  getUsers
-};
+  res.json({ success: true, message: 'Profile updated', data: serializeUser(user) });
+});
+
+module.exports = { registerUser, loginUser, getUserProfile, updateUserProfile, serializeUser };

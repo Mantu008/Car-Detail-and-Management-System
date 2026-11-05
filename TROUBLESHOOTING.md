@@ -24,8 +24,8 @@ The backend should run on `http://localhost:5000`
 
 #### 2. Test Backend Connectivity
 ```bash
-# Run the test script
-node test-backend.js
+# Health check (should return {"success":true,...})
+curl http://localhost:5000/api/health
 ```
 
 #### 3. Check Browser Console

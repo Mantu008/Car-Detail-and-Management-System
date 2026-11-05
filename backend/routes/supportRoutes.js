@@ -1,12 +1,10 @@
 const express = require('express');
-const router = express.Router();
-const { protect } = require('../middleware/authMiddleware');
 const { createTicket, getTickets } = require('../controllers/supportController');
+const { protect } = require('../middleware/authMiddleware');
+
+const router = express.Router();
 
 router.use(protect);
-
-router.route('/')
-  .post(createTicket)
-  .get(getTickets);
+router.route('/').get(getTickets).post(createTicket);
 
 module.exports = router;

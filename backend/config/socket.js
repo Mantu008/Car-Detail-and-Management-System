@@ -1,68 +1,43 @@
 const socketIO = require('socket.io');
+const { corsOrigin } = require('./cors');
 
 let io;
 
 const initializeSocket = (server) => {
-    io = socketIO(server, {
-        cors: {
-            origin: "*", // Match the express CORS config
-            methods: ["GET", "POST"]
-        }
-    });
+  // Required lazily to avoid a circular import (middleware -> models -> ...).
+  const { userFromToken } = require('../middleware/authMiddleware');
 
-    io.on('connection', (socket) => {
-        console.log('User connected:', socket.id);
+  io = socketIO(server, {
+    cors: { origin: corsOrigin, methods: ['GET', 'POST'] },
+  });
 
-        socket.on('joinUserRoom', (userId) => {
-            socket.join(`user_${userId}`);
-            console.log(`User ${userId} joined their room`);
-        });
+  // Rooms are joined server-side from the verified token, so a client
+  // can never subscribe to another user's notifications.
+  io.use(async (socket, next) => {
+    const user = await userFromToken(socket.handshake.auth?.token);
+    if (!user) return next(new Error('Unauthorized'));
+    socket.user = user;
+    return next();
+  });
 
-        socket.on('joinAdminRoom', () => {
-            socket.join('admin_room');
-            console.log('An admin joined the admin room');
-        });
+  io.on('connection', (socket) => {
+    socket.join(`user_${socket.user._id}`);
+    if (socket.user.role === 'admin') socket.join('admin_room');
+  });
 
-        socket.on('disconnect', () => {
-            console.log('User disconnected:', socket.id);
-        });
-    });
-
-    return io;
-};
-
-const getIO = () => {
-    if (!io) {
-        throw new Error("Socket.io not initialized");
-    }
-    return io;
+  return io;
 };
 
 const broadcastAnnouncement = (announcement) => {
-    if (io) {
-        io.emit('newAnnouncement', announcement);
-        console.log("Announcement broadcasted:", announcement.title);
-    }
+  if (io) io.emit('announcement', announcement);
 };
 
-const sendNotificationToUser = (userId, notification) => {
-    if (io) {
-        io.to(`user_${userId}`).emit('notification', notification);
-        console.log(`Notification sent to user ${userId}`);
-    }
+const emitToUser = (userId, event, payload) => {
+  if (io) io.to(`user_${userId}`).emit(event, payload);
 };
 
-const sendNotificationToAdmins = (notification) => {
-    if (io) {
-        io.to('admin_room').emit('notification', notification);
-        console.log('Notification sent to all admins');
-    }
+const emitToAdmins = (event, payload) => {
+  if (io) io.to('admin_room').emit(event, payload);
 };
 
-module.exports = {
-    initializeSocket,
-    getIO,
-    broadcastAnnouncement,
-    sendNotificationToUser,
-    sendNotificationToAdmins,
-};
+module.exports = { initializeSocket, broadcastAnnouncement, emitToUser, emitToAdmins };

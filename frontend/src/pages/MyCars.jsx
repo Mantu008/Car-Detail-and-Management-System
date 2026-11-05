@@ -1,145 +1,142 @@
-import React, { useState, useEffect } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import api from '../config/api';
 import { toast } from 'react-toastify';
+import api from '../config/api';
+import useFetch from '../hooks/useFetch';
+import { useConfirm } from '../context/confirmContext';
 import CarCard from '../components/CarCard';
-import { useAuth } from '../context/authContext';
+import CarQRCode from '../components/CarQRCode';
+import { Alert, Button, EmptyState, Icon, PageHeader, PageLoader, SearchInput } from '../components/ui';
+import { errorMessage, formatCurrency, vehicleName } from '../utils/format';
+
+const TYPES = ['Car', 'Motorbike', 'Truck', 'Auto', 'Other'];
 
 const MyCars = () => {
-    const [cars, setCars] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const { user } = useAuth();
+  const { data: cars, loading, error, reload, setData } = useFetch('/api/cars/my-cars', { initialData: [] });
+  const confirm = useConfirm();
+  const [search, setSearch] = useState('');
+  const [type, setType] = useState('');
+  const [sort, setSort] = useState('newest');
+  const [qrCar, setQrCar] = useState(null);
 
-    useEffect(() => {
-        fetchMyCars();
-    }, []);
-
-    const fetchMyCars = async () => {
-        try {
-            const response = await api.get('/api/cars/my-cars');
-            setCars(response.data.data);
-        } catch (error) {
-            toast.error('Failed to fetch your cars');
-            console.error('Error fetching my cars:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleDeleteCar = async (carId) => {
-        if (window.confirm('Are you sure you want to delete this car? This action cannot be undone.')) {
-            try {
-                await api.delete(`/api/cars/${carId}`);
-                setCars(cars.filter(car => car._id !== carId));
-                toast.success('Car deleted successfully!');
-            } catch (error) {
-                toast.error(error.response?.data?.message || 'Failed to delete car');
-            }
-        }
-    };
-
-    if (loading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center">
-                <div className="animate-spin rounded-full h-16 w-16 sm:h-20 sm:w-20 border-4 border-blue-600 border-t-transparent"></div>
-            </div>
-        );
-    }
-
-    return (
-        <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white py-6 sm:py-8">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="mb-6 sm:mb-8">
-                    <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-800 mb-2 sm:mb-4">My Vehicles</h1>
-                    <p className="text-gray-600 text-sm sm:text-base">
-                        Manage your vehicle inventory and service records.
-                    </p>
-                </div>
-
-                {/* Add Car Button */}
-                <div className="mb-6">
-                    <Link
-                        to="/add-car"
-                        className="inline-flex items-center bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-200 hover:-translate-y-0.5 touch-target"
-                    >
-                        <span className="mr-2 text-xl">+</span>
-                        Add New Vehicle
-                    </Link>
-                </div>
-
-                {/* Cars Grid */}
-                {cars.length === 0 ? (
-                    <div className="text-center py-12 sm:py-16 bg-white rounded-2xl shadow-lg">
-                        <div className="text-5xl sm:text-6xl mb-4">🚗</div>
-                        <h3 className="text-xl sm:text-2xl font-semibold text-gray-800 mb-2">No vehicles found</h3>
-                        <p className="text-gray-600 mb-6 px-4 text-sm sm:text-base">
-                            You haven't added any vehicles yet. Start by adding your first vehicle!
-                        </p>
-                        <Link
-                            to="/add-car"
-                            className="inline-flex items-center bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-200 hover:-translate-y-0.5 touch-target"
-                        >
-                            <span className="mr-2 text-xl">+</span>
-                            Add Your First Vehicle
-                        </Link>
-                    </div>
-                ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-                        {cars.map(car => (
-                            <div key={car._id} className="relative group">
-                                <CarCard car={car} />
-                                <div className="absolute top-2 right-2 sm:top-4 sm:right-4 flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                                    <Link
-                                        to={`/edit-car/${car._id}`}
-                                        className="bg-blue-600 hover:bg-blue-700 text-white p-2 sm:p-2.5 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 touch-target"
-                                        title="Edit Vehicle"
-                                    >
-                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                                        </svg>
-                                    </Link>
-                                    <button
-                                        onClick={() => handleDeleteCar(car._id)}
-                                        className="bg-red-600 hover:bg-red-700 text-white p-2 sm:p-2.5 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 touch-target"
-                                        title="Delete Vehicle"
-                                    >
-                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                        </svg>
-                                    </button>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                )}
-
-                {/* Stats */}
-                {cars.length > 0 && (
-                    <div className="mt-8 bg-white rounded-2xl shadow-lg p-6 sm:p-8">
-                        <h3 className="text-lg sm:text-xl font-semibold text-gray-800 mb-4 sm:mb-6">Your Vehicle Statistics</h3>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-                            <div className="text-center p-4 sm:p-6 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl hover:shadow-md transition-shadow duration-200">
-                                <div className="text-3xl sm:text-4xl font-bold text-blue-600 mb-1">{cars.length}</div>
-                                <div className="text-sm sm:text-base text-gray-700 font-medium">Total Vehicles</div>
-                            </div>
-                            <div className="text-center p-4 sm:p-6 bg-gradient-to-br from-green-50 to-green-100 rounded-xl hover:shadow-md transition-shadow duration-200">
-                                <div className="text-3xl sm:text-4xl font-bold text-green-600 mb-1">
-                                    {cars.reduce((sum, car) => sum + (car.services?.length || 0), 0)}
-                                </div>
-                                <div className="text-sm sm:text-base text-gray-700 font-medium">Total Services</div>
-                            </div>
-                            <div className="text-center p-4 sm:p-6 bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl hover:shadow-md transition-shadow duration-200 sm:col-span-2 lg:col-span-1">
-                                <div className="text-3xl sm:text-4xl font-bold text-purple-600 mb-1">
-                                    ${cars.reduce((sum, car) => sum + (car.price || 0), 0).toLocaleString()}
-                                </div>
-                                <div className="text-sm sm:text-base text-gray-700 font-medium">Total Value</div>
-                            </div>
-                        </div>
-                    </div>
-                )}
-            </div>
-        </div>
+  const visible = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const list = cars.filter(
+      (c) =>
+        (!type || c.type === type) &&
+        (!q || [c.brand, c.model, c.color, String(c.year)].some((v) => v?.toLowerCase().includes(q)))
     );
+    const sorters = {
+      newest: (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
+      year: (a, b) => b.year - a.year,
+      price: (a, b) => b.price - a.price,
+      name: (a, b) => vehicleName(a).localeCompare(vehicleName(b)),
+    };
+    return [...list].sort(sorters[sort]);
+  }, [cars, search, type, sort]);
+
+  const handleDelete = async (car) => {
+    const ok = await confirm({
+      title: `Delete ${vehicleName(car)}?`,
+      message: 'This permanently removes the vehicle together with its service history and fuel log.',
+      confirmText: 'Delete vehicle',
+      tone: 'danger',
+    });
+    if (!ok) return;
+    try {
+      await api.delete(`/api/cars/${car._id}`);
+      setData((prev) => prev.filter((c) => c._id !== car._id));
+      toast.success('Vehicle deleted');
+    } catch (err) {
+      toast.error(errorMessage(err, 'Could not delete the vehicle'));
+    }
+  };
+
+  if (loading) return <PageLoader />;
+
+  const totalValue = cars.reduce((sum, c) => sum + (c.price || 0), 0);
+  const filtering = search || type;
+
+  return (
+    <div className="page">
+      <PageHeader
+        title="My vehicles"
+        description={
+          cars.length
+            ? `${cars.length} vehicle${cars.length === 1 ? '' : 's'} · total value ${formatCurrency(totalValue)}`
+            : 'Add vehicles to track their services, fuel and costs.'
+        }
+        actions={
+          <Link to="/cars/new" className="btn btn-primary">
+            <Icon name="plus" /> Add vehicle
+          </Link>
+        }
+      />
+
+      {error && (
+        <Alert tone="red" className="mb-6">
+          {error}{' '}
+          <button type="button" className="underline" onClick={reload}>
+            Try again
+          </button>
+        </Alert>
+      )}
+
+      {cars.length > 0 && (
+        <div className="mb-6 flex flex-col gap-3 sm:flex-row">
+          <SearchInput value={search} onChange={setSearch} placeholder="Search brand, model, colour, year…" className="sm:max-w-xs sm:flex-1" />
+          <select className="input sm:w-40" value={type} onChange={(e) => setType(e.target.value)} aria-label="Filter by type">
+            <option value="">All types</option>
+            {TYPES.map((t) => (
+              <option key={t}>{t}</option>
+            ))}
+          </select>
+          <select className="input sm:ml-auto sm:w-44" value={sort} onChange={(e) => setSort(e.target.value)} aria-label="Sort">
+            <option value="newest">Recently added</option>
+            <option value="name">Name (A–Z)</option>
+            <option value="year">Year (newest)</option>
+            <option value="price">Price (highest)</option>
+          </select>
+        </div>
+      )}
+
+      {cars.length === 0 && !error ? (
+        <div className="card">
+          <EmptyState
+            icon="car"
+            title="No vehicles yet"
+            description="Add your first vehicle to start keeping its records in one place."
+            action={
+              <Link to="/cars/new" className="btn btn-primary">
+                <Icon name="plus" /> Add your first vehicle
+              </Link>
+            }
+          />
+        </div>
+      ) : visible.length === 0 && filtering ? (
+        <div className="card">
+          <EmptyState
+            icon="search"
+            title="No matching vehicles"
+            description="Try a different search or filter."
+            action={
+              <Button variant="secondary" onClick={() => { setSearch(''); setType(''); }}>
+                Clear filters
+              </Button>
+            }
+          />
+        </div>
+      ) : (
+        <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+          {visible.map((car) => (
+            <CarCard key={car._id} car={car} onDelete={handleDelete} onShowQR={setQrCar} />
+          ))}
+        </div>
+      )}
+
+      {qrCar && <CarQRCode car={qrCar} onClose={() => setQrCar(null)} />}
+    </div>
+  );
 };
 
 export default MyCars;

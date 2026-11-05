@@ -1,72 +1,58 @@
-const Announcement = require("../models/Announcement");
-const { broadcastAnnouncement } = require("../config/socket");
+const Announcement = require('../models/Announcement');
+const { asyncHandler, HttpError } = require('../middleware/errorMiddleware');
+const { broadcastAnnouncement } = require('../config/socket');
+const { logAction } = require('../utils/auditLogger');
 
-// @desc    Get Active Announcements
+const notExpired = () => ({ $or: [{ expiresAt: null }, { expiresAt: { $exists: false } }, { expiresAt: { $gt: new Date() } }] });
+
+// @desc    Active, non-expired announcements
 // @route   GET /api/announcements
 // @access  Private
-const getAnnouncements = async (req, res) => {
-    try {
-        const announcements = await Announcement.find({ active: true }).sort({
-            createdAt: -1,
-        });
+const getAnnouncements = asyncHandler(async (req, res) => {
+  const announcements = await Announcement.find({ active: true, ...notExpired() }).sort({ createdAt: -1 });
+  res.json({ success: true, count: announcements.length, data: announcements });
+});
 
-        res.json({
-            success: true,
-            count: announcements.length,
-            data: announcements,
-        });
-    } catch (error) {
-        res.status(500).json({ success: false, message: "Server Error" });
-    }
-};
-
-// @desc    Create Announcement (Admin)
+// @desc    Create and broadcast an announcement
 // @route   POST /api/announcements
 // @access  Private/Admin
-const createAnnouncement = async (req, res) => {
-    try {
-        const { title, message, type, expiresAt } = req.body;
+const createAnnouncement = asyncHandler(async (req, res) => {
+  const { title, message, type, expiresAt } = req.body;
 
-        const announcement = await Announcement.create({
-            title,
-            message,
-            type,
-            expiresAt,
-            createdBy: req.user._id,
-        });
+  if (expiresAt && new Date(expiresAt) <= new Date()) {
+    throw new HttpError(400, 'Expiry date must be in the future');
+  }
 
-        // Broadcast the new announcement to all connected users
-        broadcastAnnouncement(announcement);
+  const announcement = await Announcement.create({
+    title,
+    message,
+    type,
+    expiresAt: expiresAt || undefined,
+    createdBy: req.user._id,
+  });
 
-        res.status(201).json({ success: true, data: announcement });
-    } catch (error) {
-        res.status(500).json({ success: false, message: "Server Error" });
-    }
-};
+  broadcastAnnouncement(announcement);
+  res.status(201).json({ success: true, message: 'Announcement published', data: announcement });
 
-// @desc    Delete Announcement (Admin)
+  logAction({ action: 'CREATE_ANNOUNCEMENT', userId: req.user._id, performedBy: 'admin', req, meta: { title } });
+});
+
+// @desc    Delete an announcement
 // @route   DELETE /api/announcements/:id
 // @access  Private/Admin
-const deleteAnnouncement = async (req, res) => {
-    try {
-        const announcement = await Announcement.findById(req.params.id);
+const deleteAnnouncement = asyncHandler(async (req, res) => {
+  const announcement = await Announcement.findByIdAndDelete(req.params.id);
+  if (!announcement) throw new HttpError(404, 'Announcement not found');
 
-        if (!announcement) {
-            return res
-                .status(404)
-                .json({ success: false, message: "Announcement not found" });
-        }
+  res.json({ success: true, message: 'Announcement deleted' });
 
-        await Announcement.findByIdAndDelete(req.params.id);
+  logAction({
+    action: 'DELETE_ANNOUNCEMENT',
+    userId: req.user._id,
+    performedBy: 'admin',
+    req,
+    meta: { title: announcement.title },
+  });
+});
 
-        res.json({ success: true, message: "Announcement removed" });
-    } catch (error) {
-        res.status(500).json({ success: false, message: "Server Error" });
-    }
-};
-
-module.exports = {
-    getAnnouncements,
-    createAnnouncement,
-    deleteAnnouncement,
-};
+module.exports = { getAnnouncements, createAnnouncement, deleteAnnouncement };

@@ -1,199 +1,168 @@
-import React, { useState } from 'react';
-import { toast } from 'react-toastify';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Alert, Button, Field, Icon, Modal } from './ui';
 
-const QRCodeScanner = ({ onClose, onScanResult }) => {
-    const [scannedData, setScannedData] = useState(null);
-    const [isScanning, setIsScanning] = useState(false);
+const OBJECT_ID = /^[a-f0-9]{24}$/i;
 
-    const handleManualInput = () => {
-        const input = prompt('Enter QR code data manually:');
-        if (input) {
-            try {
-                const parsedData = JSON.parse(input);
-                setScannedData(parsedData);
-                if (onScanResult) {
-                    onScanResult(parsedData);
-                }
-                toast.success('QR code data processed successfully!');
-            } catch (error) {
-                toast.error('Invalid QR code data format');
-            }
-        }
+/** Accept a vehicle URL, an older JSON QR payload, or a bare vehicle ID. */
+export const parseVehicleId = (raw) => {
+  const text = String(raw || '').trim();
+  if (!text) return null;
+  if (OBJECT_ID.test(text)) return text;
+  const fromUrl = text.match(/\/cars\/([a-f0-9]{24})/i);
+  if (fromUrl) return fromUrl[1];
+  try {
+    const json = JSON.parse(text);
+    if (OBJECT_ID.test(json.carId || '')) return json.carId;
+  } catch {
+    /* not JSON */
+  }
+  return null;
+};
+
+const supportsDetector = typeof window !== 'undefined' && 'BarcodeDetector' in window;
+
+const QRCodeScanner = ({ onClose }) => {
+  const navigate = useNavigate();
+  const videoRef = useRef(null);
+  const streamRef = useRef(null);
+  const [manual, setManual] = useState('');
+  const [error, setError] = useState('');
+  const [scanning, setScanning] = useState(false);
+
+  const stopCamera = useCallback(() => {
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
+    setScanning(false);
+  }, []);
+
+  useEffect(() => stopCamera, [stopCamera]);
+
+  const openVehicle = useCallback(
+    (raw) => {
+      const id = parseVehicleId(raw);
+      if (!id) {
+        setError("That doesn't look like a vehicle QR code or link.");
+        return false;
+      }
+      stopCamera();
+      onClose();
+      navigate(`/cars/${id}`);
+      return true;
+    },
+    [navigate, onClose, stopCamera]
+  );
+
+  const startCamera = async () => {
+    setError('');
+    try {
+      streamRef.current = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      setScanning(true);
+    } catch {
+      setError('Camera access was blocked. Allow camera permission or paste the link instead.');
+    }
+  };
+
+  // Once the <video> is mounted, attach the stream and poll for QR codes.
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!scanning || !video || !streamRef.current) return undefined;
+    let timer;
+    let cancelled = false;
+    video.srcObject = streamRef.current;
+    video.play().catch(() => {});
+    const detector = new window.BarcodeDetector({ formats: ['qr_code'] });
+    const tick = async () => {
+      if (cancelled || !streamRef.current) return;
+      try {
+        const codes = await detector.detect(video);
+        if (codes.length && openVehicle(codes[0].rawValue)) return;
+      } catch {
+        /* frame not ready yet */
+      }
+      timer = setTimeout(tick, 250);
     };
-
-    const handleFileUpload = (event) => {
-        const file = event.target.files[0];
-        if (file) {
-            const fileType = file.type;
-            const fileName = file.name.toLowerCase();
-
-            if (fileType === 'application/json' || fileName.endsWith('.json')) {
-                // Handle JSON files
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    try {
-                        const content = e.target.result;
-                        const parsedData = JSON.parse(content);
-                        setScannedData(parsedData);
-                        if (onScanResult) {
-                            onScanResult(parsedData);
-                        }
-                        toast.success('QR code data loaded from JSON file!');
-                    } catch (error) {
-                        toast.error('Invalid JSON file format');
-                    }
-                };
-                reader.readAsText(file);
-            } else if (fileType === 'image/png' || fileName.endsWith('.png')) {
-                // Handle PNG files (QR code images)
-                toast.info('PNG files detected. Please use manual input or copy the QR code data from the downloaded JSON file.');
-            } else if (fileName.endsWith('.txt')) {
-                // Handle text files
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    try {
-                        const content = e.target.result;
-                        const parsedData = JSON.parse(content);
-                        setScannedData(parsedData);
-                        if (onScanResult) {
-                            onScanResult(parsedData);
-                        }
-                        toast.success('QR code data loaded from text file!');
-                    } catch (error) {
-                        toast.error('Invalid text file format');
-                    }
-                };
-                reader.readAsText(file);
-            } else {
-                toast.error('Unsupported file type. Please upload JSON or TXT files.');
-            }
-        }
+    tick();
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
     };
+  }, [scanning, openVehicle]);
 
-    const handleNavigateToCar = () => {
-        if (scannedData && scannedData.carUrl) {
-            window.open(scannedData.carUrl, '_blank');
-        }
-    };
+  const scanImage = async (file) => {
+    if (!file) return;
+    setError('');
+    try {
+      const bitmap = await createImageBitmap(file);
+      const codes = await new window.BarcodeDetector({ formats: ['qr_code'] }).detect(bitmap);
+      if (!codes.length) setError('No QR code found in that image.');
+      else openVehicle(codes[0].rawValue);
+    } catch {
+      setError('Could not read that image.');
+    }
+  };
 
-    const handleNavigateToServices = () => {
-        if (scannedData && scannedData.serviceHistoryUrl) {
-            window.open(scannedData.serviceHistoryUrl, '_blank');
-        }
-    };
+  return (
+    <Modal title="Scan vehicle QR code" description="Open a vehicle's page from its QR code or link." onClose={onClose} size="md">
+      <div className="space-y-5">
+        {error && <Alert tone="red">{error}</Alert>}
 
-    return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-xl shadow-2xl p-8 max-w-2xl w-full mx-4">
-                <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-2xl font-bold text-gray-800">
-                        QR Code Scanner
-                    </h2>
-                    <button
-                        onClick={onClose}
-                        className="text-gray-500 hover:text-gray-700 text-2xl"
-                    >
-                        ×
-                    </button>
-                </div>
-
-                <div className="text-center mb-6">
-                    <div className="bg-gray-100 rounded-lg p-8 mb-4">
-                        <div className="text-6xl mb-4">📱</div>
-                        <p className="text-gray-600 mb-2">
-                            Scan a car QR code or use the manual options below
-                        </p>
-                        <div className="text-sm text-gray-500 bg-blue-50 p-3 rounded-lg">
-                            <p><strong>💡 Tip:</strong> Download the JSON file from the QR code generator for easy upload!</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="space-y-4 mb-6">
-                    <button
-                        onClick={handleManualInput}
-                        className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg font-medium transition-colors"
-                    >
-                        📝 Enter QR Data Manually
-                    </button>
-
-                    <label className="w-full bg-green-600 hover:bg-green-700 text-white py-3 px-4 rounded-lg font-medium transition-colors cursor-pointer block text-center">
-                        📁 Upload QR Data File (JSON/TXT)
-                        <input
-                            type="file"
-                            accept=".json,.txt,.png"
-                            onChange={handleFileUpload}
-                            className="hidden"
-                        />
-                    </label>
-                </div>
-
-                {scannedData && (
-                    <div className="bg-gray-50 rounded-lg p-6">
-                        <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                            Scanned Car Data:
-                        </h3>
-
-                        <div className="grid grid-cols-2 gap-4 mb-4">
-                            <div>
-                                <span className="text-sm font-medium text-gray-600">Brand:</span>
-                                <p className="font-semibold">{scannedData.brand}</p>
-                            </div>
-                            <div>
-                                <span className="text-sm font-medium text-gray-600">Model:</span>
-                                <p className="font-semibold">{scannedData.model}</p>
-                            </div>
-                            <div>
-                                <span className="text-sm font-medium text-gray-600">Year:</span>
-                                <p className="font-semibold">{scannedData.year}</p>
-                            </div>
-                            <div>
-                                <span className="text-sm font-medium text-gray-600">Price:</span>
-                                <p className="font-semibold text-green-600">${scannedData.price?.toLocaleString()}</p>
-                            </div>
-                        </div>
-
-                        {scannedData.owner && (
-                            <div className="mb-4 p-3 bg-white rounded border">
-                                <span className="text-sm font-medium text-gray-600">Owner:</span>
-                                <p className="font-semibold">{scannedData.owner.name}</p>
-                                <p className="text-sm text-gray-600">{scannedData.owner.email}</p>
-                            </div>
-                        )}
-
-                        <div className="flex space-x-2">
-                            {scannedData.carUrl && (
-                                <button
-                                    onClick={handleNavigateToCar}
-                                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition-colors"
-                                >
-                                    🔗 View Car Details
-                                </button>
-                            )}
-
-                            {scannedData.serviceHistoryUrl && (
-                                <button
-                                    onClick={handleNavigateToServices}
-                                    className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg font-medium transition-colors"
-                                >
-                                    🔧 View Service History
-                                </button>
-                            )}
-                        </div>
-                    </div>
-                )}
-
-                <div className="mt-6 text-center">
-                    <p className="text-xs text-gray-500">
-                        QR codes contain car information and direct links to details and service history
-                    </p>
-                    <p className="text-xs text-gray-400 mt-1">
-                        For PNG files: Use the downloaded JSON file instead, or copy the QR data manually
-                    </p>
-                </div>
+        {supportsDetector ? (
+          scanning ? (
+            <div className="space-y-3">
+              <div className="relative overflow-hidden rounded-lg bg-slate-900">
+                <video ref={videoRef} className="aspect-square w-full object-cover" muted playsInline />
+                <div className="pointer-events-none absolute inset-10 rounded-xl border-2 border-white/70" />
+              </div>
+              <Button variant="secondary" className="w-full" onClick={stopCamera}>
+                Stop camera
+              </Button>
             </div>
-        </div>
-    );
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Button variant="secondary" className="h-20 flex-col gap-1.5" onClick={startCamera}>
+                <Icon name="camera" className="h-5 w-5" /> Use camera
+              </Button>
+              <label className="btn btn-secondary h-20 cursor-pointer flex-col gap-1.5">
+                <Icon name="image" className="h-5 w-5" /> Upload image
+                <input type="file" accept="image/*" className="hidden" onChange={(e) => scanImage(e.target.files[0])} />
+              </label>
+            </div>
+          )
+        ) : (
+          <Alert tone="blue">
+            Your browser can't scan QR codes directly. Use your phone's camera app — it will open the vehicle page — or paste the
+            link below.
+          </Alert>
+        )}
+
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            openVehicle(manual);
+          }}
+        >
+          <Field label="Vehicle link or ID" htmlFor="qr-manual">
+            <div className="flex gap-2">
+              <input
+                id="qr-manual"
+                className="input"
+                placeholder="https://…/cars/66f1… or vehicle ID"
+                value={manual}
+                onChange={(e) => {
+                  setManual(e.target.value);
+                  setError('');
+                }}
+              />
+              <Button type="submit" disabled={!manual.trim()}>
+                Open
+              </Button>
+            </div>
+          </Field>
+        </form>
+      </div>
+    </Modal>
+  );
 };
 
 export default QRCodeScanner;
