@@ -3,11 +3,12 @@ import { Badge, Icon, VehicleImage } from './ui';
 import { formatCurrency, formatKm, vehicleName } from '../utils/format';
 
 const CarCard = ({ car, onDelete, onShowQR }) => (
-  <article className="card group flex flex-col overflow-hidden transition-shadow hover:shadow-pop">
-    <Link to={`/cars/${car._id}`} className="relative block">
-      <VehicleImage src={car.image} alt={vehicleName(car)} className="aspect-[16/10] w-full" />
+  <article className="card card-interactive group flex flex-col overflow-hidden">
+    <Link to={`/cars/${car._id}`} className="relative block overflow-hidden">
+      <VehicleImage src={car.image} alt={vehicleName(car)} className="aspect-[16/10] w-full transition-transform duration-500 group-hover:scale-[1.03]" />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-slate-900/25 to-transparent" aria-hidden="true" />
       <div className="absolute left-3 top-3 flex gap-1.5">
-        <Badge className="bg-white/95">{car.type || 'Car'}</Badge>
+        <Badge className="bg-white/95 shadow-sm backdrop-blur">{car.type || 'Car'}</Badge>
         {car.status === 'suspicious' && <Badge tone="red">Flagged</Badge>}
       </div>
     </Link>
@@ -15,7 +16,7 @@ const CarCard = ({ car, onDelete, onShowQR }) => (
     <div className="flex flex-1 flex-col p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <Link to={`/cars/${car._id}`} className="block truncate font-semibold hover:underline">
+          <Link to={`/cars/${car._id}`} className="block truncate font-display text-[17px] font-bold text-slate-900 hover:text-brand-700">
             {vehicleName(car)}
           </Link>
           <p className="text-sm text-slate-500">
@@ -23,15 +24,15 @@ const CarCard = ({ car, onDelete, onShowQR }) => (
             {car.color ? ` · ${car.color}` : ''}
           </p>
         </div>
-        <p className="shrink-0 font-semibold tabular-nums">{formatCurrency(car.price)}</p>
+        <p className="shrink-0 font-semibold tabular-nums text-brand-700">{formatCurrency(car.price)}</p>
       </div>
 
-      <dl className="mt-4 grid grid-cols-2 gap-3 border-t border-slate-100 pt-4 text-sm">
-        <div>
+      <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
+        <div className="rounded-lg bg-slate-50 px-3 py-2">
           <dt className="text-xs text-slate-500">Odometer</dt>
           <dd className="font-medium tabular-nums">{formatKm(car.mileage)}</dd>
         </div>
-        <div>
+        <div className="rounded-lg bg-slate-50 px-3 py-2">
           <dt className="text-xs text-slate-500">Services</dt>
           <dd className="font-medium tabular-nums">{car.services?.length || 0}</dd>
         </div>

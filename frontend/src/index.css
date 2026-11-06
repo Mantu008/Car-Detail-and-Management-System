@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -10,7 +10,7 @@
   }
 
   body {
-    @apply bg-slate-50 font-sans text-slate-900 antialiased;
+    @apply bg-[#f6f8fc] font-sans text-slate-900 antialiased;
     font-feature-settings: 'cv11', 'ss01';
   }
 
@@ -19,6 +19,25 @@
   h3,
   h4 {
     @apply tracking-tight text-slate-900;
+  }
+
+  h1,
+  h2 {
+    @apply font-display;
+  }
+
+  ::selection {
+    @apply bg-brand-100 text-brand-900;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 
   :focus-visible {
@@ -38,8 +57,8 @@
 @layer components {
   /* Buttons */
   .btn {
-    @apply inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium
-      transition-colors duration-150 disabled:pointer-events-none disabled:opacity-50;
+    @apply inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg px-4 py-2 text-sm font-semibold
+      transition-all duration-150 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50;
   }
   .btn-sm {
     @apply px-3 py-1.5 text-[13px];
@@ -51,13 +70,19 @@
     @apply h-9 w-9 p-0;
   }
   .btn-primary {
-    @apply bg-slate-900 text-white hover:bg-slate-700;
+    @apply bg-brand-600 text-white shadow-btn-brand hover:bg-brand-700;
   }
   .btn-accent {
-    @apply bg-brand-600 text-white hover:bg-brand-700;
+    @apply bg-brand-600 text-white shadow-btn-brand hover:bg-brand-700;
+  }
+  .btn-dark {
+    @apply bg-slate-900 text-white hover:bg-slate-800;
+  }
+  .btn-white {
+    @apply bg-white text-slate-900 shadow-sm hover:bg-slate-100;
   }
   .btn-secondary {
-    @apply border border-slate-300 bg-white text-slate-700 shadow-sm hover:bg-slate-50 hover:text-slate-900;
+    @apply border border-slate-200 bg-white text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900;
   }
   .btn-ghost {
     @apply text-slate-600 hover:bg-slate-100 hover:text-slate-900;
@@ -74,7 +99,7 @@
     @apply mb-1.5 block text-sm font-medium text-slate-700;
   }
   .input {
-    @apply block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm
+    @apply block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm
       placeholder:text-slate-400 transition-colors
       focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-500/10
       disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-500;
@@ -98,10 +123,13 @@
   /* Surfaces */
   .card {
     /* min-w-0 lets cards shrink inside grid/flex parents (prevents wide tables overflowing on mobile) */
-    @apply min-w-0 rounded-xl border border-slate-200 bg-white shadow-card;
+    @apply min-w-0 rounded-2xl border border-slate-200/80 bg-white shadow-card;
+  }
+  .card-interactive {
+    @apply transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-card-hover;
   }
   .card-header {
-    @apply flex items-center justify-between gap-4 border-b border-slate-200 px-5 py-4;
+    @apply flex items-center justify-between gap-4 border-b border-slate-100 px-5 py-4;
   }
   .card-title {
     @apply text-base font-semibold text-slate-900;
@@ -115,7 +143,7 @@
     @apply min-w-full divide-y divide-slate-200 text-sm;
   }
   .table thead th {
-    @apply bg-slate-50 px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500;
+    @apply bg-slate-50/80 px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500;
   }
   .table tbody td {
     @apply px-4 py-3 align-middle text-slate-700;
@@ -134,6 +162,19 @@
   .divider {
     @apply border-t border-slate-200;
   }
+  .eyebrow {
+    @apply text-xs font-semibold uppercase tracking-[0.14em] text-brand-600;
+  }
+  .text-gradient {
+    @apply bg-gradient-to-r from-brand-300 via-sky-300 to-cyan-200 bg-clip-text text-transparent;
+  }
+  .skeleton {
+    @apply relative overflow-hidden rounded-md bg-slate-200/70;
+  }
+  .skeleton::after {
+    content: '';
+    @apply absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-white/60 to-transparent;
+  }
   .kbd {
     @apply rounded border border-slate-300 bg-slate-50 px-1.5 py-0.5 font-mono text-xs text-slate-600;
   }
@@ -141,7 +182,7 @@
 
 /* react-toastify — match the app's look */
 .Toastify__toast {
-  @apply rounded-lg border border-slate-200 font-sans text-sm text-slate-800 shadow-pop;
+  @apply rounded-xl border border-slate-200 font-sans text-sm text-slate-800 shadow-pop;
   min-height: 52px;
 }
 .Toastify__toast-body {

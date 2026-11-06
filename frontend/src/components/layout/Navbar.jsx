@@ -17,7 +17,7 @@ const userLinks = [
 
 const navClass = ({ isActive }) =>
   `rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-    isActive ? 'bg-slate-100 text-slate-900' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+    isActive ? 'bg-brand-50 text-brand-700' : 'text-slate-600 hover:bg-slate-100/70 hover:text-slate-900'
   }`;
 
 const UserMenu = ({ user, isAdmin, onLogout }) => {
@@ -82,6 +82,10 @@ const Navbar = () => {
 
   useEffect(() => setMobileOpen(false), [location.pathname]);
 
+  // The public landing page has a dark hero, so the bar blends into it there.
+  const dark = !isAuthenticated && location.pathname === '/';
+  const ghost = dark ? 'text-slate-300 hover:bg-white/10 hover:text-white' : '';
+
   // Leave the protected page first, otherwise its guard redirects to /login.
   const handleLogout = () => {
     navigate('/', { replace: true });
@@ -89,9 +93,13 @@ const Navbar = () => {
   };
 
   return (
-    <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/90 backdrop-blur">
+    <header
+      className={`sticky top-0 z-30 border-b backdrop-blur-xl ${
+        dark ? 'border-white/10 bg-ink-950' : 'border-slate-200/70 bg-white/80 supports-[backdrop-filter]:bg-white/70'
+      }`}
+    >
       <div className="mx-auto flex h-16 max-w-7xl items-center gap-6 px-4 sm:px-6 lg:px-8">
-        <Logo />
+        <Logo light={dark} />
 
         {isAuthenticated && (
           <nav className="hidden items-center gap-1 lg:flex">
@@ -106,7 +114,7 @@ const Navbar = () => {
         <div className="ml-auto flex items-center gap-1.5">
           <button
             type="button"
-            className="btn btn-ghost btn-icon"
+            className={`btn btn-ghost btn-icon ${ghost}`}
             onClick={() => setScannerOpen(true)}
             title="Scan a vehicle QR code"
             aria-label="Scan a vehicle QR code"
@@ -139,11 +147,11 @@ const Navbar = () => {
             </>
           ) : (
             <>
-              <Link to="/login" className="btn btn-ghost">
+              <Link to="/login" className={`btn btn-ghost hidden sm:inline-flex ${ghost}`}>
                 Sign in
               </Link>
               <Link to="/register" className="btn btn-primary">
-                Get started
+                Get started <Icon name="arrowRight" className="hidden h-4 w-4 sm:block" />
               </Link>
             </>
           )}
@@ -160,7 +168,7 @@ const Navbar = () => {
                 end={link.end}
                 className={({ isActive }) =>
                   `flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium ${
-                    isActive ? 'bg-slate-100 text-slate-900' : 'text-slate-600 hover:bg-slate-50'
+                    isActive ? 'bg-brand-50 text-brand-700' : 'text-slate-600 hover:bg-slate-50'
                   }`
                 }
               >

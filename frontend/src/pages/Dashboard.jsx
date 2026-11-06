@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../context/authContext';
 import { useNotifications } from '../context/notificationContext';
 import useFetch from '../hooks/useFetch';
-import { Alert, Badge, EmptyState, Icon, PageHeader, PageLoader, StatCard, VehicleImage, statusTone } from '../components/ui';
+import { Alert, Badge, DashboardSkeleton, EmptyState, Icon, StatCard, VehicleImage, statusTone } from '../components/ui';
 import { capitalize, formatCurrency, formatDate, formatKm, vehicleName } from '../utils/format';
 
 const greeting = () => {
@@ -41,22 +41,43 @@ const Dashboard = () => {
     };
   }, [services.data]);
 
-  if (cars.loading || services.loading) return <PageLoader />;
+  if (cars.loading || services.loading) return <DashboardSkeleton />;
 
   const vehicles = cars.data || [];
   const flagged = vehicles.filter((c) => c.status === 'suspicious');
 
   return (
     <div className="page">
-      <PageHeader
-        title={`${greeting()}, ${user.name.split(' ')[0]}`}
-        description="Here's an overview of your vehicles and recent activity."
-        actions={
-          <Link to="/cars/new" className="btn btn-primary">
-            <Icon name="plus" /> Add vehicle
-          </Link>
-        }
-      />
+      <section className="relative mb-6 overflow-hidden rounded-3xl bg-ink-950 px-6 py-7 sm:px-8 sm:py-9">
+        <div
+          className="pointer-events-none absolute inset-0 bg-grid-light [background-size:40px_40px] [mask-image:radial-gradient(ellipse_at_top_right,black_10%,transparent_65%)]"
+          aria-hidden="true"
+        />
+        <div className="pointer-events-none absolute -right-20 -top-28 h-72 w-72 rounded-full bg-brand-600/50 blur-[90px]" aria-hidden="true" />
+        <div className="relative flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-brand-300">{new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+            <h1 className="mt-1.5 text-2xl font-bold text-white sm:text-3xl">
+              {greeting()}, {user.name.split(' ')[0]}
+            </h1>
+            <p className="mt-2 max-w-xl text-sm text-slate-400 sm:text-[15px]">
+              {vehicles.length === 0
+                ? 'Add your first vehicle to start tracking services, fuel and costs.'
+                : stats.overdue > 0
+                  ? `You have ${stats.overdue} overdue service${stats.overdue === 1 ? '' : 's'}. Take a look below.`
+                  : `All ${vehicles.length} vehicle${vehicles.length === 1 ? ' is' : 's are'} up to date. Nice work.`}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Link to="/cars/new" className="btn btn-primary">
+              <Icon name="plus" /> Add vehicle
+            </Link>
+            <Link to="/analytics" className="btn border border-white/15 bg-white/5 text-white hover:bg-white/10">
+              <Icon name="chart" /> Analytics
+            </Link>
+          </div>
+        </div>
+      </section>
 
       {(cars.error || services.error) && (
         <Alert tone="red" className="mb-6">
@@ -88,7 +109,7 @@ const Dashboard = () => {
         <section className="card lg:col-span-2">
           <div className="card-header">
             <h2 className="card-title">Your vehicles</h2>
-            <Link to="/my-cars" className="text-sm font-medium text-slate-600 hover:text-slate-900">
+            <Link to="/my-cars" className="text-sm font-semibold text-brand-600 hover:text-brand-700">
               View all
             </Link>
           </div>
@@ -108,7 +129,7 @@ const Dashboard = () => {
               {vehicles.slice(0, 5).map((car) => (
                 <li key={car._id}>
                   <Link to={`/cars/${car._id}`} className="flex items-center gap-4 px-5 py-3.5 hover:bg-slate-50">
-                    <VehicleImage src={car.image} alt={vehicleName(car)} className="h-12 w-16 rounded-md" iconClass="h-5 w-5" />
+                    <VehicleImage src={car.image} alt={vehicleName(car)} className="h-12 w-16 rounded-lg" iconClass="h-5 w-5" />
                     <div className="min-w-0 flex-1">
                       <p className="truncate font-medium">{vehicleName(car)}</p>
                       <p className="text-sm text-slate-500">
@@ -160,7 +181,7 @@ const Dashboard = () => {
         <section className="card lg:col-span-2">
           <div className="card-header">
             <h2 className="card-title">Recent services</h2>
-            <Link to="/analytics" className="text-sm font-medium text-slate-600 hover:text-slate-900">
+            <Link to="/analytics" className="text-sm font-semibold text-brand-600 hover:text-brand-700">
               Analytics
             </Link>
           </div>
@@ -201,7 +222,7 @@ const Dashboard = () => {
         <section className="card">
           <div className="card-header">
             <h2 className="card-title">Announcements</h2>
-            <Link to="/notifications" className="text-sm font-medium text-slate-600 hover:text-slate-900">
+            <Link to="/notifications" className="text-sm font-semibold text-brand-600 hover:text-brand-700">
               All
             </Link>
           </div>

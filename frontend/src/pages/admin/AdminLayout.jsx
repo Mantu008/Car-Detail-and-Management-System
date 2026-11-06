@@ -20,24 +20,28 @@ const Sidebar = ({ onNavigate }) => {
   const navigate = useNavigate();
 
   return (
-    <div className="flex h-full flex-col bg-slate-900 text-slate-300">
-      <Link to="/admin" onClick={onNavigate} className="flex h-16 items-center gap-2.5 px-5">
+    <div className="relative flex h-full flex-col overflow-hidden bg-ink-950 text-slate-300">
+      <div className="pointer-events-none absolute -left-20 -top-24 h-64 w-64 rounded-full bg-brand-600/25 blur-[80px]" aria-hidden="true" />
+      <Link to="/admin" onClick={onNavigate} className="relative flex h-16 items-center gap-2.5 px-5">
         <LogoMark className="h-8 w-8 rounded-lg ring-1 ring-white/10" />
         <div>
-          <p className="text-sm font-semibold text-white">Car Manager</p>
+          <p className="font-display text-[15px] font-bold text-white">Car Manager</p>
           <p className="text-[11px] text-slate-500">Administration</p>
         </div>
       </Link>
 
-      <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-4">
+      <nav className="relative flex-1 space-y-0.5 overflow-y-auto px-3 py-4">
+        <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Manage</p>
         {ADMIN_NAV.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}
             onClick={onNavigate}
             className={({ isActive }) =>
-              `flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-                isActive ? 'bg-white/10 text-white' : 'text-slate-400 hover:bg-white/5 hover:text-white'
+              `flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                isActive
+                  ? 'bg-brand-600 text-white shadow-btn-brand'
+                  : 'text-slate-400 hover:bg-white/5 hover:text-white'
               }`
             }
           >
@@ -47,15 +51,15 @@ const Sidebar = ({ onNavigate }) => {
         <div className="my-3 border-t border-white/10" />
         <NavLink
           to="/my-cars"
-          className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-slate-400 hover:bg-white/5 hover:text-white"
+          className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-400 hover:bg-white/5 hover:text-white"
         >
           <Icon name="arrowLeft" /> Open user app
         </NavLink>
       </nav>
 
-      <div className="border-t border-white/10 p-3">
+      <div className="relative border-t border-white/10 p-3">
         <div className="flex items-center gap-3 rounded-md px-2 py-2">
-          <Avatar name={user?.name} size="h-8 w-8 text-xs bg-slate-700 text-white" />
+          <Avatar name={user?.name} size="h-8 w-8 text-xs !ring-white/10" />
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium text-white">{user?.name}</p>
             <p className="truncate text-xs text-slate-500">{user?.email}</p>
@@ -87,7 +91,7 @@ const AdminLayout = () => {
   useEffect(() => setDrawerOpen(false), [location.pathname]);
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen">
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 lg:block">
         <Sidebar />
       </aside>
@@ -102,7 +106,7 @@ const AdminLayout = () => {
       )}
 
       <div className="lg:pl-64">
-        <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-slate-200 bg-white/90 px-4 backdrop-blur sm:px-6 lg:px-8">
+        <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-slate-200/70 bg-white/80 px-4 backdrop-blur-xl sm:px-6 lg:px-8">
           <button type="button" className="btn btn-ghost btn-icon -ml-2 lg:hidden" onClick={() => setDrawerOpen(true)} aria-label="Open menu">
             <Icon name="menu" className="h-5 w-5" />
           </button>
