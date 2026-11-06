@@ -98,7 +98,7 @@ dist
 
 # Gatsby files
 .cache/
-public
+# (public/ is Vite's static asset folder, so it is committed)
 
 # Storybook build outputs
 .out

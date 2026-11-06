@@ -15,8 +15,66 @@ export const Spinner = ({ className = 'h-4 w-4' }) => (
 
 export const PageLoader = ({ label = 'Loading…', className = 'min-h-[50vh]' }) => (
   <div className={`flex flex-col items-center justify-center gap-3 text-slate-500 ${className}`} role="status">
-    <Spinner className="h-6 w-6 text-slate-400" />
-    <span className="text-sm">{label}</span>
+    <span className="relative flex h-11 w-11 items-center justify-center rounded-xl bg-white shadow-card ring-1 ring-slate-200/80">
+      <Spinner className="h-5 w-5 text-brand-600" />
+    </span>
+    <span className="text-sm font-medium">{label}</span>
+  </div>
+);
+
+/** Shimmering placeholder block. */
+export const Skeleton = ({ className = 'h-4 w-full' }) => <div className={`skeleton ${className}`} aria-hidden="true" />;
+
+/** Placeholder that mirrors the stat-card row + two panels used on dashboards. */
+export const DashboardSkeleton = () => (
+  <div className="page" role="status" aria-label="Loading">
+    <div className="mb-8 space-y-3">
+      <Skeleton className="h-8 w-64" />
+      <Skeleton className="h-4 w-80 max-w-full" />
+    </div>
+    <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      {[0, 1, 2, 3].map((i) => (
+        <div key={i} className="card space-y-4 p-5">
+          <Skeleton className="h-9 w-9 rounded-xl" />
+          <Skeleton className="h-3 w-24" />
+          <Skeleton className="h-7 w-20" />
+        </div>
+      ))}
+    </div>
+    <div className="mt-6 grid gap-6 lg:grid-cols-3">
+      <div className="card space-y-5 p-5 lg:col-span-2">
+        {[0, 1, 2].map((i) => (
+          <div key={i} className="flex items-center gap-4">
+            <Skeleton className="h-12 w-16 rounded-lg" />
+            <div className="flex-1 space-y-2">
+              <Skeleton className="h-4 w-1/2" />
+              <Skeleton className="h-3 w-1/3" />
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="card space-y-4 p-5">
+        {[0, 1, 2].map((i) => (
+          <Skeleton key={i} className="h-10 w-full rounded-lg" />
+        ))}
+      </div>
+    </div>
+  </div>
+);
+
+/** Placeholder grid of vehicle cards. */
+export const CardGridSkeleton = ({ count = 6 }) => (
+  <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3" role="status" aria-label="Loading">
+    {Array.from({ length: count }, (_, i) => (
+      <div key={i} className="card overflow-hidden">
+        <Skeleton className="aspect-[16/10] w-full rounded-none" />
+        <div className="space-y-3 p-4">
+          <Skeleton className="h-4 w-2/3" />
+          <Skeleton className="h-3 w-1/3" />
+          <Skeleton className="mt-4 h-8 w-full rounded-lg" />
+        </div>
+      </div>
+    ))}
   </div>
 );
 
@@ -36,7 +94,7 @@ export const PageHeader = ({ title, description, actions, back }) => (
   <div className="mb-6 flex flex-col gap-4 sm:mb-8 sm:flex-row sm:items-end sm:justify-between">
     <div className="min-w-0">
       {back}
-      <h1 className="text-2xl font-semibold sm:text-[1.75rem]">{title}</h1>
+      <h1 className="text-2xl font-bold sm:text-[1.875rem]">{title}</h1>
       {description && <p className="mt-1 text-sm text-slate-500 sm:text-[15px]">{description}</p>}
     </div>
     {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
@@ -44,9 +102,12 @@ export const PageHeader = ({ title, description, actions, back }) => (
 );
 
 export const EmptyState = ({ icon = 'info', title, description, action, className = '' }) => (
-  <div className={`flex flex-col items-center px-6 py-12 text-center ${className}`}>
-    <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-500">
-      <Icon name={icon} className="h-6 w-6" />
+  <div className={`flex flex-col items-center px-6 py-14 text-center ${className}`}>
+    <div className="relative mb-5">
+      <div className="absolute inset-0 scale-150 rounded-full bg-brand-100/60 blur-xl" aria-hidden="true" />
+      <div className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-brand-600 shadow-card ring-1 ring-slate-200/80">
+        <Icon name={icon} className="h-6 w-6" />
+      </div>
     </div>
     <h3 className="text-[15px] font-semibold text-slate-900">{title}</h3>
     {description && <p className="mt-1 max-w-sm text-sm text-slate-500">{description}</p>}
@@ -56,24 +117,32 @@ export const EmptyState = ({ icon = 'info', title, description, action, classNam
 
 export const StatCard = ({ label, value, hint, icon, tone = 'slate' }) => {
   const tones = {
-    slate: 'bg-slate-100 text-slate-600',
-    blue: 'bg-brand-50 text-brand-600',
-    green: 'bg-emerald-50 text-emerald-600',
-    amber: 'bg-amber-50 text-amber-600',
-    red: 'bg-red-50 text-red-600',
+    slate: 'bg-slate-100 text-slate-600 ring-slate-200',
+    blue: 'bg-brand-50 text-brand-600 ring-brand-100',
+    green: 'bg-emerald-50 text-emerald-600 ring-emerald-100',
+    amber: 'bg-amber-50 text-amber-600 ring-amber-100',
+    red: 'bg-red-50 text-red-600 ring-red-100',
+  };
+  const glows = {
+    slate: 'bg-slate-200',
+    blue: 'bg-brand-200',
+    green: 'bg-emerald-200',
+    amber: 'bg-amber-200',
+    red: 'bg-red-200',
   };
   return (
-    <div className="card p-5">
-      <div className="flex items-start justify-between gap-3">
+    <div className="card relative overflow-hidden p-5">
+      <div className={`pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full opacity-40 blur-2xl ${glows[tone]}`} aria-hidden="true" />
+      <div className="relative flex items-start justify-between gap-3">
         <p className="text-sm font-medium text-slate-500">{label}</p>
         {icon && (
-          <span className={`flex h-8 w-8 items-center justify-center rounded-lg ${tones[tone]}`}>
+          <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ring-1 ring-inset ${tones[tone]}`}>
             <Icon name={icon} />
           </span>
         )}
       </div>
-      <p className="mt-2 text-2xl font-semibold tabular-nums text-slate-900">{value}</p>
-      {hint && <p className="mt-1 text-xs text-slate-500">{hint}</p>}
+      <p className="relative mt-3 font-display text-2xl font-bold tabular-nums text-slate-900 sm:text-[1.75rem]">{value}</p>
+      {hint && <p className="relative mt-1 text-xs font-medium text-slate-500">{hint}</p>}
     </div>
   );
 };
@@ -117,7 +186,7 @@ export const statusTone = (status) =>
 
 export const Avatar = ({ name, size = 'h-8 w-8 text-xs' }) => (
   <span
-    className={`inline-flex shrink-0 items-center justify-center rounded-full bg-slate-200 font-semibold text-slate-700 ${size}`}
+    className={`inline-flex shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-cyan-400 font-semibold text-white ring-2 ring-white ${size}`}
   >
     {initials(name)}
   </span>
@@ -143,7 +212,7 @@ export const VehicleImage = ({ src, alt, className = 'h-44 w-full', iconClass = 
 
   if (!url || failed) {
     return (
-      <div className={`flex items-center justify-center bg-slate-100 text-slate-300 ${className}`}>
+      <div className={`flex items-center justify-center bg-gradient-to-br from-slate-100 via-slate-50 to-brand-50 text-slate-300 ${className}`}>
         <Icon name="car" className={iconClass} strokeWidth={1.25} />
       </div>
     );
@@ -163,14 +232,14 @@ export const Tabs = ({ tabs, value, onChange }) => (
           onClick={() => onChange(tab.value)}
           className={`flex items-center gap-2 whitespace-nowrap border-b-2 px-0.5 pb-3 text-sm font-medium transition-colors ${
             value === tab.value
-              ? 'border-slate-900 text-slate-900'
+              ? 'border-brand-600 text-brand-700'
               : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700'
           }`}
         >
           {tab.icon && <Icon name={tab.icon} />}
           {tab.label}
           {tab.count !== undefined && (
-            <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-xs text-slate-600">{tab.count}</span>
+            <span className={`rounded-full px-1.5 py-0.5 text-xs ${value === tab.value ? 'bg-brand-50 text-brand-700' : 'bg-slate-100 text-slate-600'}`}>{tab.count}</span>
           )}
         </button>
       ))}

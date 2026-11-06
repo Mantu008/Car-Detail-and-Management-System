@@ -175,7 +175,7 @@ const Login = () => {
       </form>
 
       <div className="mt-6">
-        <div className="flex items-center gap-3 text-xs font-medium uppercase tracking-wide text-slate-400">
+        <div className="flex items-center gap-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
           <span className="h-px flex-1 bg-slate-200" />
           Or explore with a demo account
           <span className="h-px flex-1 bg-slate-200" />

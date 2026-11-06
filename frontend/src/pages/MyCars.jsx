@@ -6,7 +6,7 @@ import useFetch from '../hooks/useFetch';
 import { useConfirm } from '../context/confirmContext';
 import CarCard from '../components/CarCard';
 import CarQRCode from '../components/CarQRCode';
-import { Alert, Button, EmptyState, Icon, PageHeader, PageLoader, SearchInput } from '../components/ui';
+import { Alert, Button, CardGridSkeleton, EmptyState, Icon, PageHeader, SearchInput, Skeleton } from '../components/ui';
 import { errorMessage, formatCurrency, vehicleName } from '../utils/format';
 
 const TYPES = ['Car', 'Motorbike', 'Truck', 'Auto', 'Other'];
@@ -52,7 +52,17 @@ const MyCars = () => {
     }
   };
 
-  if (loading) return <PageLoader />;
+  if (loading) {
+    return (
+      <div className="page">
+        <div className="mb-8 space-y-3">
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-4 w-72 max-w-full" />
+        </div>
+        <CardGridSkeleton />
+      </div>
+    );
+  }
 
   const totalValue = cars.reduce((sum, c) => sum + (c.price || 0), 0);
   const filtering = search || type;
@@ -83,7 +93,7 @@ const MyCars = () => {
       )}
 
       {cars.length > 0 && (
-        <div className="mb-6 flex flex-col gap-3 sm:flex-row">
+        <div className="card mb-6 flex flex-col gap-3 p-3 sm:flex-row">
           <SearchInput value={search} onChange={setSearch} placeholder="Search brand, model, colour, year…" className="sm:max-w-xs sm:flex-1" />
           <select className="input sm:w-40" value={type} onChange={(e) => setType(e.target.value)} aria-label="Filter by type">
             <option value="">All types</option>
